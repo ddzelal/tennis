@@ -1,0 +1,16 @@
+node_modules
+.idea
+.turbo
+
+# pnpm
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# next
+.next
+
+# env
+.env
+
+# dist
+dist
