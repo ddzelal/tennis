@@ -38,15 +38,19 @@ export const TournamentController = {
     // Create a new tournament
     createTournament: (async (req: Request, res: Response) => {
         try {
+            console.log('=== CREATE TOURNAMENT DEBUG ===');
+            console.log('Request body:', JSON.stringify(req.body, null, 2));
+            
             const { name, description, type, startDate, endDate, players, maxPlayers, rules } = req.body;
             
             if (!name || typeof name !== 'string') {
+                console.log('❌ Name validation failed:', name);
                 return res.status(400).json({ message: 'Name is required and must be a string' });
             }
             
             const createdBy = req.body.createdBy || '000000000000000000000000';
             
-            const tournament = new Tournament({
+            const tournamentData = {
                 name,
                 description,
                 type,
@@ -57,14 +61,29 @@ export const TournamentController = {
                 rules,
                 createdBy,
                 status: 'DRAFT'
-            });
+            };
             
+            console.log('Tournament data to save:', JSON.stringify(tournamentData, null, 2));
+            
+            const tournament = new Tournament(tournamentData);
+            
+            console.log('About to save tournament...');
             await tournament.save();
+            console.log('✅ Tournament saved successfully');
             
             res.status(201).json(tournament);
-        } catch (error) {
-            console.error('Error creating tournament:', error);
-            res.status(500).json({ message: 'Error creating tournament' });
+        } catch (error: any) {
+            console.error('❌ DETAILED ERROR creating tournament:');
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            console.error('Full error:', error);
+            
+            // Return more detailed error for debugging
+            res.status(500).json({ 
+                message: 'Error creating tournament',
+                error: error.message,
+                details: error.errors ? Object.keys(error.errors) : 'No validation errors'
+            });
         }
     }) as RequestHandler,
 

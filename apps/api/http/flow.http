@@ -1,0 +1,403 @@
+### 🏆 COMPLETE TOURNAMENT FLOW - WIMBLEDON 2025
+### Run these requests in order to simulate a full tournament
+
+### ==============================================
+### 📋 PHASE 1: SETUP - Create Players & Tournament
+### ==============================================
+
+### 1.1 Create Player 1 - Novak Djokovic
+POST {{baseUrl}}/api/players
+Content-Type: application/json
+
+{
+  "name": "Novak Djokovic",
+  "email": "novak@example.com",
+  "phone": "+381601234567",
+  "ranking": 1
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("novakId", response.body._id);
+        console.log("✅ Novak created:", response.body._id);
+    }
+%}
+
+### 1.2 Create Player 2 - Rafael Nadal
+POST {{baseUrl}}/api/players
+Content-Type: application/json
+
+{
+  "name": "Rafael Nadal",
+  "email": "rafa@example.com",
+  "phone": "+34612345678",
+  "ranking": 2
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("rafaId", response.body._id);
+        console.log("✅ Rafa created:", response.body._id);
+    }
+%}
+
+### 1.3 Create Player 3 - Roger Federer
+POST {{baseUrl}}/api/players
+Content-Type: application/json
+
+{
+  "name": "Roger Federer",
+  "email": "roger@example.com",
+  "phone": "+41791234567",
+  "ranking": 3
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("rogerId", response.body._id);
+        console.log("✅ Roger created:", response.body._id);
+    }
+%}
+
+### 1.4 Create Player 4 - Andy Murray
+POST {{baseUrl}}/api/players
+Content-Type: application/json
+
+{
+  "name": "Andy Murray",
+  "email": "andy@example.com",
+  "phone": "+44712345678",
+  "ranking": 4
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("andyId", response.body._id);
+        console.log("✅ Andy created:", response.body._id);
+    }
+%}
+
+### 1.5 Create Tournament - Wimbledon 2025
+POST {{baseUrl}}/api/tournaments
+Content-Type: application/json
+
+{
+  "name": "Wimbledon 2025",
+  "description": "The Championships - The most prestigious tennis tournament",
+  "type": "KNOCKOUT",
+  "status": "REGISTRATION",
+  "startDate": "2025-07-01T09:00:00.000Z",
+  "endDate": "2025-07-14T18:00:00.000Z",
+  "maxPlayers": 128,
+  "settings": {
+    "setsToWin": 3,
+    "gamesPerSet": 6,
+    "tieBreak": true,
+    "pointsPerWin": 2,
+    "pointsPerLoss": 0,
+    "pointsPerDraw": 1
+  }
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("tournamentId", response.body._id);
+        console.log("✅ Tournament created:", response.body._id);
+    }
+%}
+
+### ==============================================
+### 👥 PHASE 2: REGISTRATION - Add Players to Tournament
+### ==============================================
+
+### 2.1 Add Novak to Tournament
+POST {{baseUrl}}/api/tournaments/{{tournamentId}}/players
+Content-Type: application/json
+
+{
+  "playerId": "{{novakId}}"
+}
+
+### 2.2 Add Rafa to Tournament
+POST {{baseUrl}}/api/tournaments/{{tournamentId}}/players
+Content-Type: application/json
+
+{
+  "playerId": "{{rafaId}}"
+}
+
+### 2.3 Add Roger to Tournament
+POST {{baseUrl}}/api/tournaments/{{tournamentId}}/players
+Content-Type: application/json
+
+{
+  "playerId": "{{rogerId}}"
+}
+
+### 2.4 Add Andy to Tournament
+POST {{baseUrl}}/api/tournaments/{{tournamentId}}/players
+Content-Type: application/json
+
+{
+  "playerId": "{{andyId}}"
+}
+
+### 2.5 Check Tournament with all players
+GET {{baseUrl}}/api/tournaments/{{tournamentId}}
+Accept: application/json
+
+### ==============================================
+### 🏟️ PHASE 3: TOURNAMENT STRUCTURE - Create Stages
+### ==============================================
+
+### 3.1 Start Tournament - Change status to IN_PROGRESS
+PUT {{baseUrl}}/api/tournaments/{{tournamentId}}
+Content-Type: application/json
+
+{
+  "status": "IN_PROGRESS"
+}
+
+### 3.2 Create Semifinals Stage
+POST {{baseUrl}}/api/stages
+Content-Type: application/json
+
+{
+  "tournament": "{{tournamentId}}",
+  "name": "Semifinals",
+  "type": "SEMIFINALS",
+  "order": 1,
+  "startDate": "2025-07-12T14:00:00.000Z",
+  "endDate": "2025-07-12T20:00:00.000Z",
+  "players": ["{{novakId}}", "{{rafaId}}", "{{rogerId}}", "{{andyId}}"],
+  "advancingPlayers": 2,
+  "rules": {
+    "setsToWin": 3,
+    "tieBreak": true
+  }
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("semifinalStageId", response.body._id);
+        console.log("✅ Semifinals created:", response.body._id);
+    }
+%}
+
+### 3.3 Create Finals Stage
+POST {{baseUrl}}/api/stages
+Content-Type: application/json
+
+{
+  "tournament": "{{tournamentId}}",
+  "name": "Final",
+  "type": "FINALS",
+  "order": 2,
+  "startDate": "2025-07-14T15:00:00.000Z",
+  "endDate": "2025-07-14T19:00:00.000Z",
+  "players": [],
+  "advancingPlayers": 1,
+  "rules": {
+    "setsToWin": 3,
+    "tieBreak": true
+  }
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("finalStageId", response.body._id);
+        console.log("✅ Finals created:", response.body._id);
+    }
+%}
+
+### ==============================================
+### ⚡ PHASE 4: MATCH GENERATION - Create Matches
+### ==============================================
+
+### 4.1 Generate Semifinal Matches
+POST {{baseUrl}}/api/stages/{{semifinalStageId}}/generate-matches
+Accept: application/json
+
+### 4.2 Get Generated Matches for Semifinals
+GET {{baseUrl}}/api/matches?stageId={{semifinalStageId}}
+Accept: application/json
+
+> {%
+    if (response.status === 200 && response.body.length > 0) {
+        client.global.set("semifinal1Id", response.body[0]._id);
+        client.global.set("semifinal2Id", response.body[1]._id);
+        console.log("✅ Semifinal 1:", response.body[0]._id);
+        console.log("✅ Semifinal 2:", response.body[1]._id);
+    }
+%}
+
+### ==============================================
+### 🎾 PHASE 5: MATCH RESULTS - Semifinals
+### ==============================================
+
+### 5.1 Semifinal 1 Result - Novak beats Roger (3-1)
+POST {{baseUrl}}/api/matches/{{semifinal1Id}}/result
+Content-Type: application/json
+
+{
+  "sets": [
+    {"player1Score": 6, "player2Score": 4},
+    {"player1Score": 4, "player2Score": 6},
+    {"player1Score": 6, "player2Score": 3},
+    {"player1Score": 6, "player2Score": 2}
+  ],
+  "winner": "{{novakId}}"
+}
+
+### 5.2 Semifinal 2 Result - Rafa beats Andy (3-0)
+POST {{baseUrl}}/api/matches/{{semifinal2Id}}/result
+Content-Type: application/json
+
+{
+  "sets": [
+    {"player1Score": 6, "player2Score": 3},
+    {"player1Score": 6, "player2Score": 4},
+    {"player1Score": 6, "player2Score": 2}
+  ],
+  "winner": "{{rafaId}}"
+}
+
+### 5.3 Check Completed Semifinals
+GET {{baseUrl}}/api/matches?stageId={{semifinalStageId}}&status=COMPLETED
+Accept: application/json
+
+### ==============================================
+### 🏆 PHASE 6: FINALS SETUP - Add Winners to Finals
+### ==============================================
+
+### 6.1 Add Novak (Winner of SF1) to Finals
+POST {{baseUrl}}/api/stages/{{finalStageId}}/players
+Content-Type: application/json
+
+{
+  "playerId": "{{novakId}}"
+}
+
+### 6.2 Add Rafa (Winner of SF2) to Finals
+POST {{baseUrl}}/api/stages/{{finalStageId}}/players
+Content-Type: application/json
+
+{
+  "playerId": "{{rafaId}}"
+}
+
+### 6.3 Generate Final Match
+POST {{baseUrl}}/api/stages/{{finalStageId}}/generate-matches
+Accept: application/json
+
+### 6.4 Get Final Match
+GET {{baseUrl}}/api/matches?stageId={{finalStageId}}
+Accept: application/json
+
+> {%
+    if (response.status === 200 && response.body.length > 0) {
+        client.global.set("finalMatchId", response.body[0]._id);
+        console.log("✅ Final match:", response.body[0]._id);
+    }
+%}
+
+### ==============================================
+### 🥇 PHASE 7: FINAL MATCH RESULT
+### ==============================================
+
+### 7.1 Epic Final - Novak beats Rafa in 5 sets!
+POST {{baseUrl}}/api/matches/{{finalMatchId}}/result
+Content-Type: application/json
+
+{
+  "sets": [
+    {"player1Score": 6, "player2Score": 7, "tiebreak": true, "tiebreakScore": "8-10"},
+    {"player1Score": 6, "player2Score": 4},
+    {"player1Score": 3, "player2Score": 6},
+    {"player1Score": 6, "player2Score": 4},
+    {"player1Score": 6, "player2Score": 3}
+  ],
+  "winner": "{{novakId}}"
+}
+
+### 7.2 Get Final Match with Result
+GET {{baseUrl}}/api/matches/{{finalMatchId}}
+Accept: application/json
+
+### ==============================================
+### 🏆 PHASE 8: TOURNAMENT COMPLETION
+### ==============================================
+
+### 8.1 Complete Tournament
+PUT {{baseUrl}}/api/tournaments/{{tournamentId}}
+Content-Type: application/json
+
+{
+  "status": "COMPLETED"
+}
+
+### 8.2 Final Tournament State
+GET {{baseUrl}}/api/tournaments/{{tournamentId}}
+Accept: application/json
+
+### ==============================================
+### 📊 PHASE 9: FINAL REPORTS & STATISTICS
+### ==============================================
+
+### 9.1 All Tournament Matches
+GET {{baseUrl}}/api/matches?tournamentId={{tournamentId}}
+Accept: application/json
+
+### 9.2 Novak's Matches (Champion's Journey)
+GET {{baseUrl}}/api/matches?tournamentId={{tournamentId}}&playerId={{novakId}}
+Accept: application/json
+
+### 9.3 All Tournament Stages
+GET {{baseUrl}}/api/stages?tournamentId={{tournamentId}}
+Accept: application/json
+
+### 9.4 Tournament Players Final State
+GET {{baseUrl}}/api/players
+Accept: application/json
+
+### ==============================================
+### 🧹 PHASE 10: CLEANUP (Optional)
+### ==============================================
+
+### 10.1 Delete Tournament (and all related data)
+DELETE {{baseUrl}}/api/tournaments/{{tournamentId}}
+Accept: application/json
+
+### 10.2 Delete All Players
+DELETE {{baseUrl}}/api/players/{{novakId}}
+Accept: application/json
+
+###
+DELETE {{baseUrl}}/api/players/{{rafaId}}
+Accept: application/json
+
+###
+DELETE {{baseUrl}}/api/players/{{rogerId}}
+Accept: application/json
+
+###
+DELETE {{baseUrl}}/api/players/{{andyId}}
+Accept: application/json
+
+### ==============================================
+### ✅ TOURNAMENT FLOW COMPLETE!
+###
+### Summary:
+### 1. ✅ Created 4 players
+### 2. ✅ Created Wimbledon tournament
+### 3. ✅ Registered all players
+### 4. ✅ Created tournament stages
+### 5. ✅ Generated matches automatically
+### 6. ✅ Recorded semifinal results
+### 7. ✅ Advanced winners to finals
+### 8. ✅ Played epic 5-set final
+### 9. ✅ Completed tournament
+### 10. ✅ Generated final reports
+###
+### 🏆 CHAMPION: Novak Djokovic!
+### ==============================================

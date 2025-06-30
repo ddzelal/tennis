@@ -1,0 +1,153 @@
+### Variables
+@apiUrl = {{baseUrl}}/api/matches
+@tournamentId = 686303e677af27d79f40166a
+@stageId = 686305b3655c4c59aa143d02
+@novakId = 6863023f77af27d79f401660
+@rafaId = 6863024977af27d79f401663
+
+### Get all matches
+GET {{apiUrl}}
+Accept: application/json
+
+### Get matches for specific tournament
+GET {{apiUrl}}?tournamentId={{tournamentId}}
+Accept: application/json
+
+### Get matches for specific stage
+GET {{apiUrl}}?stageId={{stageId}}
+Accept: application/json
+
+### Get matches for specific player
+GET {{apiUrl}}?playerId={{novakId}}
+Accept: application/json
+
+### Get matches by status
+GET {{apiUrl}}?status=SCHEDULED
+Accept: application/json
+
+### Create a manual match (Djokovic vs Nadal)
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "tournament": "{{tournamentId}}",
+  "stage": "{{stageId}}",
+  "player1": "{{novakId}}",
+  "player2": "{{rafaId}}",
+  "scheduledDate": "2025-07-05T16:00:00.000Z",
+  "status": "SCHEDULED"
+}
+
+### Create another match (without stage - exhibition match)
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "tournament": "{{tournamentId}}",
+  "player1": "{{novakId}}",
+  "player2": "{{rafaId}}",
+  "scheduledDate": "2025-07-06T18:00:00.000Z"
+}
+
+### Get match by ID (replace with actual match ID after creating)
+GET {{apiUrl}}/686306f7655c4c59aa143d0a
+Accept: application/json
+
+### Update match - change scheduled date
+PUT {{apiUrl}}/686306f7655c4c59aa143d0a
+Content-Type: application/json
+
+{
+  "scheduledDate": "2025-07-05T17:30:00.000Z",
+  "notes": "Match time changed due to weather"
+}
+
+### Record match result - Djokovic wins 2-1
+POST {{apiUrl}}/686306f7655c4c59aa143d0a/result
+Content-Type: application/json
+
+{
+  "sets": [
+    {
+      "player1Score": 6,
+      "player2Score": 4,
+      "tiebreak": false
+    },
+    {
+      "player1Score": 4,
+      "player2Score": 6,
+      "tiebreak": false
+    },
+    {
+      "player1Score": 7,
+      "player2Score": 6,
+      "tiebreak": true,
+      "tiebreakScore": "7-3"
+    }
+  ],
+  "winner": "{{novakId}}"
+}
+
+### Get completed match with results
+GET {{apiUrl}}/686306f7655c4c59aa143d0a
+Accept: application/json
+
+### Update match status to IN_PROGRESS
+PUT {{apiUrl}}/686306f7655c4c59aa143d0a
+Content-Type: application/json
+
+{
+  "status": "IN_PROGRESS"
+}
+
+### Test validation errors
+
+### Invalid tournament ID
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "tournament": "000000000000000000000000",
+  "player1": "{{novakId}}",
+  "player2": "{{rafaId}}"
+}
+
+### Same player for both positions
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "tournament": "{{tournamentId}}",
+  "player1": "{{novakId}}",
+  "player2": "{{novakId}}"
+}
+
+### Invalid player ID
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "tournament": "{{tournamentId}}",
+  "player1": "000000000000000000000000",
+  "player2": "{{rafaId}}"
+}
+
+### Record result without sets
+POST {{apiUrl}}/686306f7655c4c59aa143d0a/result
+Content-Type: application/json
+
+{
+  "winner": "{{novakId}}"
+}
+
+### Delete match
+DELETE {{apiUrl}}/686306f7655c4c59aa143d0a
+Accept: application/json
+
+### Complex query - tournament + status + player
+GET {{apiUrl}}?tournamentId={{tournamentId}}&status=COMPLETED&playerId={{novakId}}
+Accept: application/json
+
+### Get non-existing match
+GET {{apiUrl}}/000000000000000000000000
+Accept: application/json

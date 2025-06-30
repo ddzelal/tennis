@@ -10,7 +10,7 @@ const router:Router = express.Router();
 // Mount routes
 router.use(ENDPOINT.PLAYERS, playerRoutes);
 router.use(ENDPOINT.TOURNAMENTS, tournamentRoutes);
-router.use('/matches', matchRoutes);
-router.use('/stages', stageRoutes);
+router.use(ENDPOINT.MATCHES, matchRoutes);
+router.use(ENDPOINT.STAGES, stageRoutes);
 
 export default router;

@@ -40,7 +40,7 @@ export const StageController = {
     }
   }) as RequestHandler,
 
-  // Create new stage
+  // Create a new stage
   createStage: (async (req: Request, res: Response) => {
     try {
       const { 

@@ -1,0 +1,60 @@
+### Variables
+@apiUrl = {{baseUrl}}/api/tournaments
+@tournamentId = 686303e677af27d79f40166a
+@novakId = 6863023f77af27d79f401660
+@rafaId = 6863024977af27d79f401663
+
+### Get all tournaments (should see your Wimbledon tournament)
+GET {{apiUrl}}
+Accept: application/json
+
+### Get tournament by ID
+GET {{apiUrl}}/{{tournamentId}}
+Accept: application/json
+
+### Add Novak to tournament
+POST {{apiUrl}}/{{tournamentId}}/players
+Content-Type: application/json
+
+{
+  "playerId": "{{novakId}}"
+}
+
+### Add Rafa to tournament
+POST {{apiUrl}}/{{tournamentId}}/players
+Content-Type: application/json
+
+{
+  "playerId": "{{rafaId}}"
+}
+
+### Get tournament with players (should see populated players)
+GET {{apiUrl}}/{{tournamentId}}
+Accept: application/json
+
+### Update tournament status
+PUT {{apiUrl}}/{{tournamentId}}
+Content-Type: application/json
+
+{
+  "status": "REGISTRATION"
+}
+
+### Create another player for testing
+POST {{baseUrl}}/api/players
+Content-Type: application/json
+
+{
+  "name": "Roger Federer",
+  "email": "roger@example.com",
+  "phone": "+41791234567",
+  "ranking": 3
+}
+
+### Remove player from tournament (test removal)
+DELETE {{apiUrl}}/{{tournamentId}}/players
+Content-Type: application/json
+
+{
+  "playerId": "{{rafaId}}"
+}

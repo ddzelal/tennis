@@ -1,0 +1,152 @@
+### Variables
+@apiUrl = {{baseUrl}}/api/stages
+@tournamentId = 686303e677af27d79f40166a
+@novakId = 6863023f77af27d79f401660
+@rafaId = 6863024977af27d79f401663
+
+### Get all stages
+GET {{apiUrl}}
+Accept: application/json
+
+### Get stages for specific tournament
+GET {{apiUrl}}?tournamentId={{tournamentId}}
+Accept: application/json
+
+### Create Group Stage (Round Robin for qualifying)
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "tournament": "{{tournamentId}}",
+  "name": "Group Stage A",
+  "type": "GROUP",
+  "order": 1,
+  "startDate": "2025-07-01T10:00:00.000Z",
+  "endDate": "2025-07-02T18:00:00.000Z",
+  "players": ["{{novakId}}", "{{rafaId}}"],
+  "advancingPlayers": 2,
+  "rules": {
+    "setsToWin": 2,
+    "tieBreak": true
+  }
+}
+
+### Create Knockout Stage (Quarterfinals)
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "tournament": "{{tournamentId}}",
+  "name": "Quarterfinals",
+  "type": "KNOCKOUT",
+  "order": 2,
+  "startDate": "2025-07-03T14:00:00.000Z",
+  "endDate": "2025-07-04T20:00:00.000Z",
+  "players": [],
+  "advancingPlayers": 4,
+  "rules": {
+    "setsToWin": 3,
+    "tieBreak": true
+  }
+}
+
+### Create Semifinals Stage
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "tournament": "{{tournamentId}}",
+  "name": "Semifinals",
+  "type": "SEMIFINALS",
+  "order": 3,
+  "startDate": "2025-07-05T15:00:00.000Z",
+  "endDate": "2025-07-06T19:00:00.000Z",
+  "players": [],
+  "advancingPlayers": 2
+}
+
+### Create Finals Stage
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "tournament": "{{tournamentId}}",
+  "name": "Final",
+  "type": "FINALS",
+  "order": 4,
+  "startDate": "2025-07-07T16:00:00.000Z",
+  "endDate": "2025-07-07T19:00:00.000Z",
+  "players": [],
+  "advancingPlayers": 1
+}
+
+### Test validation - Duplicate order (should fail)
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "tournament": "{{tournamentId}}",
+  "name": "Duplicate Order Stage",
+  "type": "GROUP",
+  "order": 1
+}
+
+### Test validation - Invalid tournament (should fail)
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "tournament": "000000000000000000000000",
+  "name": "Invalid Tournament Stage",
+  "type": "GROUP",
+  "order": 5
+}
+
+### Get stage by ID (replace with actual stage ID after creating)
+GET {{apiUrl}}/686305b3655c4c59aa143d02
+Accept: application/json
+
+### Add third player to existing stage (replace stage ID)
+POST {{apiUrl}}/686304f077af27d79f40166d/players
+Content-Type: application/json
+
+{
+  "playerId": "{{rafaId}}"
+}
+
+### Generate matches for Group Stage (replace with actual stage ID)
+POST {{apiUrl}}/686305c0655c4c59aa143d06/generate-matches
+Accept: application/json
+
+### Update stage
+PUT {{apiUrl}}/686304f077af27d79f40166d
+Content-Type: application/json
+
+{
+  "name": "Group Stage A - Updated",
+  "advancingPlayers": 1,
+  "rules": {
+    "setsToWin": 3,
+    "tieBreak": false
+  }
+}
+
+### Update stage order (test order validation)
+PUT {{apiUrl}}/686304f077af27d79f40166d
+Content-Type: application/json
+
+{
+  "order": 5
+}
+
+### Delete stage (and related matches)
+DELETE {{apiUrl}}/686304f077af27d79f40166d
+Accept: application/json
+
+### Test non-existing stage operations
+GET {{apiUrl}}/000000000000000000000000
+Accept: application/json
+
+### Test invalid stage ID format
+GET {{apiUrl}}/invalid-stage-id
+Accept: application/json

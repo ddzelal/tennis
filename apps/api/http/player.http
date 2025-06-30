@@ -1,0 +1,117 @@
+@apiUrl = {{baseUrl}}/api/players
+
+### Get all players
+GET {{apiUrl}}
+Accept: application/json
+
+### Get all players with search
+GET {{apiUrl}}?search=Novak
+Accept: application/json
+
+### Get all players with pagination
+GET {{apiUrl}}?page=1&limit=5
+Accept: application/json
+
+### Get player by ID (replace with actual ID after creating a player)
+GET {{apiUrl}}/676d8f123456789012345678
+Accept: application/json
+
+### Create new player - Valid data
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "name": "Novak Djokovic",
+  "email": "novak@example.com",
+  "phone": "+381601234567",
+  "ranking": 1
+}
+
+### Create another player
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "name": "Rafael Nadal",
+  "email": "rafa@example.com",
+  "phone": "+34612345678",
+  "ranking": 2
+}
+
+### Create third player
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "name": "Roger Federer",
+  "email": "roger@example.com",
+  "phone": "+41791234567",
+  "ranking": 3
+}
+
+### Create player - Test duplicate email (should fail)
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "name": "Duplicate Test",
+  "email": "novak@example.com",
+  "phone": "+381601234568",
+  "ranking": 10
+}
+
+### Create player - Test missing required fields
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "email": "invalid-email",
+  "ranking": 5
+}
+
+### Update player (replace ID with actual player ID)
+PUT {{apiUrl}}/676d8f123456789012345678
+Content-Type: application/json
+
+{
+  "name": "Novak Djokovic Updated",
+  "email": "novak.updated@example.com",
+  "phone": "+381601234567",
+  "ranking": 1
+}
+
+### Update player - Test duplicate email (should fail)
+PUT {{apiUrl}}/676d8f123456789012345678
+Content-Type: application/json
+
+{
+  "name": "Novak Djokovic",
+  "email": "rafa@example.com",
+  "phone": "+381601234567",
+  "ranking": 1
+}
+
+### Update partial player data
+PUT {{apiUrl}}/676d8f123456789012345678
+Content-Type: application/json
+
+{
+  "ranking": 5
+}
+
+### Delete player (replace with actual ID)
+DELETE {{apiUrl}}/676d8f123456789012345678
+Accept: application/json
+
+### Delete non-existing player (should return 404)
+DELETE {{apiUrl}}/676d8f123456789012345999
+Accept: application/json
+
+### Test invalid player ID format
+GET {{apiUrl}}/invalid-id-format
+Accept: application/json
+
+### Test non-existing player ID
+GET {{apiUrl}}/676d8f123456789012345999
+Accept: application/json

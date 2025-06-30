@@ -8,6 +8,9 @@ export const ENDPOINT = {
     TOURNAMENTS: '/tournaments',
     TOURNAMENT: (id: string) => `/tournaments/${id}`,
 
-    MATCHES: `matches`,
+    MATCHES: `/matches`,
     MATCH: (id: string) => `/users/${id}`,
+
+    STAGES: `/stages`,
+    STAGE: (id: string) => `/stages/${id}`,
 } as const;
