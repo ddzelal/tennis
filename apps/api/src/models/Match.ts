@@ -7,6 +7,12 @@ export enum MatchStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export enum MatchResultType {
+  NEXT_MATCH = 'NEXT_MATCH',
+  WINS_TOURNAMENT = 'WINS_TOURNAMENT',
+  EXIT = 'EXIT',
+}
+
 export interface ISet {
   player1Score: number;
   player2Score: number;
@@ -17,6 +23,9 @@ export interface ISet {
 export interface IMatch extends Document {
   tournament: mongoose.Types.ObjectId;
   stage?: mongoose.Types.ObjectId;
+  group?: string;
+  round?: number;
+  matchNumber?: number;
   player1: mongoose.Types.ObjectId;
   player2: mongoose.Types.ObjectId;
   status: MatchStatus;
@@ -24,6 +33,8 @@ export interface IMatch extends Document {
   completedDate?: Date;
   sets?: ISet[];
   winner?: mongoose.Types.ObjectId;
+  resultForWinner?: string; // Next match ID or MatchResultType
+  resultForLoser?: string; // Next match ID or MatchResultType
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -40,6 +51,9 @@ const MatchSchema = new Schema<IMatch>(
   {
     tournament: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
     stage: { type: Schema.Types.ObjectId, ref: 'Stage' },
+    group: { type: String }, // For group stages (e.g., "A", "B")
+    round: { type: Number }, // For knockout stages (e.g., 1 = Round of 16, 2 = Quarterfinals)
+    matchNumber: { type: Number }, // Unique identifier within a round
     player1: { type: Schema.Types.ObjectId, ref: 'Player', required: true },
     player2: { type: Schema.Types.ObjectId, ref: 'Player', required: true },
     status: { 
@@ -51,6 +65,8 @@ const MatchSchema = new Schema<IMatch>(
     completedDate: { type: Date },
     sets: [SetSchema],
     winner: { type: Schema.Types.ObjectId, ref: 'Player' },
+    resultForWinner: { type: String }, // Next match ID or MatchResultType
+    resultForLoser: { type: String }, // Next match ID or MatchResultType
     notes: { type: String },
   },
   { timestamps: true }

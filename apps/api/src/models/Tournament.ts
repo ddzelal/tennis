@@ -1,10 +1,12 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { IPlayer } from './Player';
+import { IStage } from './Stage';
 
 export enum TournamentType {
   LEAGUE = 'LEAGUE',
   KNOCKOUT = 'KNOCKOUT',
   GROUP_KNOCKOUT = 'GROUP_KNOCKOUT',
+  ROUND_ROBIN = 'ROUND_ROBIN',
   CUSTOM = 'CUSTOM',
 }
 
@@ -16,6 +18,16 @@ export enum TournamentStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export interface ITournamentSettings {
+  setsToWin?: number;
+  gamesPerSet?: number;
+  tieBreak?: boolean;
+  pointsPerWin?: number;
+  pointsPerLoss?: number;
+  pointsPerDraw?: number;
+  tiebreakers?: string[];
+}
+
 export interface ITournament extends Document {
   name: string;
   description?: string;
@@ -24,21 +36,24 @@ export interface ITournament extends Document {
   startDate?: Date;
   endDate?: Date;
   players: mongoose.Types.ObjectId[] | IPlayer[];
+  stages?: mongoose.Types.ObjectId[] | IStage[];
   maxPlayers?: number;
-  rules?: {
-    matchesPerPlayer?: number;
-    advancingPlayers?: number;
-    scoringSystem?: string;
-    sets?: number;
-    pointsPerWin?: number;
-    pointsPerLoss?: number;
-    pointsPerDraw?: number;
-    tiebreakers?: string[];
-  };
+  currentStage?: number;
+  settings?: ITournamentSettings;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const TournamentSettingsSchema = new Schema<ITournamentSettings>({
+  setsToWin: { type: Number, default: 2 }, // Best of 3 sets by default
+  gamesPerSet: { type: Number, default: 6 }, // 6 games per set by default
+  tieBreak: { type: Boolean, default: true }, // Use tiebreak at 6-6 by default
+  pointsPerWin: { type: Number, default: 2 },
+  pointsPerLoss: { type: Number, default: 0 },
+  pointsPerDraw: { type: Number, default: 1 },
+  tiebreakers: [{ type: String }],
+}, { _id: false });
 
 const TournamentSchema = new Schema<ITournament>(
   {
@@ -57,16 +72,12 @@ const TournamentSchema = new Schema<ITournament>(
     startDate: { type: Date },
     endDate: { type: Date },
     players: [{ type: Schema.Types.ObjectId, ref: 'Player' }],
+    stages: [{ type: Schema.Types.ObjectId, ref: 'Stage' }],
     maxPlayers: { type: Number },
-    rules: {
-      matchesPerPlayer: { type: Number },
-      advancingPlayers: { type: Number },
-      scoringSystem: { type: String },
-      sets: { type: Number },
-      pointsPerWin: { type: Number },
-      pointsPerLoss: { type: Number },
-      pointsPerDraw: { type: Number },
-      tiebreakers: [{ type: String }],
+    currentStage: { type: Number, default: 0 },
+    settings: { 
+      type: TournamentSettingsSchema,
+      default: () => ({})
     },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
