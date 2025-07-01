@@ -1,81 +1,114 @@
 import { Request, Response, RequestHandler } from 'express';
 import { Stage, Tournament, Match } from '../models';
 import mongoose from 'mongoose';
+import { ResponseHelper, PaginationHelper } from '../lib/utils/responseHandler';
+import { ValidationError } from '../types/response';
 
 export const StageController = {
   // Get all stages
-  getAllStages: (async (req: Request, res: Response) => {
+  getAllStages: (async (req: Request, res: Response): Promise<void> => {
     try {
       const { tournamentId } = req.query;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
 
       const filter: any = {};
       if (tournamentId) filter.tournament = tournamentId;
 
+      const total = await Stage.countDocuments(filter);
+      const skip = PaginationHelper.getSkipValue(page, limit);
+      
       const stages = await Stage.find(filter)
         .sort({ order: 1 })
-        .populate('tournament', 'name');
+        .populate('tournament', 'name')
+        .skip(skip)
+        .limit(limit);
 
-      res.status(200).json(stages);
+      const pagination = PaginationHelper.calculatePagination(page, limit, total);
+
+      ResponseHelper.paginatedSuccess(
+        res, 
+        stages, 
+        pagination,
+        `Found ${total} stage(s)`
+      );
     } catch (error) {
       console.error('Error getting stages:', error);
-      res.status(500).json({ message: 'Error getting stages' });
+      ResponseHelper.internalError(res, 'Error getting stages');
     }
   }) as RequestHandler,
 
   // Get stage by ID
-  getStageById: (async (req: Request, res: Response) => {
+  getStageById: (async (req: Request, res: Response): Promise<void> => {
     try {
       const stage = await Stage.findById(req.params.id)
         .populate('tournament', 'name')
         .populate('players', 'name email ranking');
       
       if (!stage) {
-        return res.status(404).json({ message: 'Stage not found' });
+        ResponseHelper.notFound(res, 'Stage');
+        return;
       }
       
-      res.status(200).json(stage);
+      ResponseHelper.success(res, stage, 'Stage retrieved successfully');
     } catch (error) {
       console.error('Error getting stage:', error);
-      res.status(500).json({ message: 'Error getting stage' });
+      
+      if (error instanceof Error && error.name === 'CastError') {
+        ResponseHelper.badRequest(res, 'Invalid stage ID format');
+        return;
+      }
+      
+      ResponseHelper.internalError(res, 'Error getting stage');
     }
   }) as RequestHandler,
 
   // Create a new stage
-  createStage: (async (req: Request, res: Response) => {
+  createStage: (async (req: Request, res: Response): Promise<void> => {
     try {
-      const { 
-        tournament, 
-        name, 
-        type, 
-        order,
-        startDate, 
-        endDate, 
-        players,
-        advancingPlayers,
-        rules
-      } = req.body;
+      const { tournament, name, type, order, startDate, endDate, players, advancingPlayers, rules } = req.body;
+      
+      const validationErrors: ValidationError[] = [];
+      
+      if (!tournament) {
+        validationErrors.push({ field: 'tournament', message: 'Tournament is required' });
+      }
+      
+      if (!name || name.trim() === '') {
+        validationErrors.push({ field: 'name', message: 'Name is required' });
+      }
+      
+      if (!type) {
+        validationErrors.push({ field: 'type', message: 'Type is required' });
+      }
+      
+      if (order === undefined || order === null || isNaN(order)) {
+        validationErrors.push({ field: 'order', message: 'Order is required and must be a number' });
+      }
+      
+      if (validationErrors.length > 0) {
+        ResponseHelper.badRequest(res, 'Validation failed', validationErrors);
+        return;
+      }
       
       // Validate tournament exists
       const tournamentExists = await Tournament.exists({ _id: tournament });
       if (!tournamentExists) {
-        return res.status(400).json({ message: 'Tournament not found' });
+        ResponseHelper.badRequest(res, 'Tournament not found');
+        return;
       }
       
-      // Check if a stage with the same order already exists for this tournament
-      const existingStage = await Stage.findOne({ 
-        tournament, 
-        order 
-      });
+      // Check if stage with same order exists
+      const existingStage = await Stage.findOne({ tournament, order });
       
       if (existingStage) {
-        return res.status(400).json({ 
-          message: `A stage with order ${order} already exists for this tournament` 
-        });
+        ResponseHelper.conflict(res, `A stage with order ${order} already exists for this tournament`);
+        return;
       }
       
       const stage = new Stage({
         tournament,
-        name,
+        name: name.trim(),
         type,
         order,
         startDate,
@@ -87,32 +120,39 @@ export const StageController = {
       
       await stage.save();
       
-      res.status(201).json(stage);
+      ResponseHelper.created(res, stage, 'Stage created successfully');
     } catch (error) {
       console.error('Error creating stage:', error);
-      res.status(500).json({ message: 'Error creating stage' });
+      ResponseHelper.internalError(res, 'Error creating stage');
     }
   }) as RequestHandler,
 
   // Update stage
-  updateStage: (async (req: Request, res: Response) => {
+  updateStage: (async (req: Request, res: Response): Promise<void> => {
     try {
-      const { 
-        name, 
-        type, 
-        order,
-        startDate, 
-        endDate, 
-        players,
-        advancingPlayers,
-        rules
-      } = req.body;
+      const { name, type, order, startDate, endDate, players, advancingPlayers, rules } = req.body;
       
-      // If the order is being changed, check if a stage with the new order already exists
-      if (order) {
+      const validationErrors: ValidationError[] = [];
+      
+      if (name !== undefined && (!name || name.trim() === '')) {
+        validationErrors.push({ field: 'name', message: 'Name cannot be empty' });
+      }
+      
+      if (order !== undefined && (order === null || isNaN(order))) {
+        validationErrors.push({ field: 'order', message: 'Order must be a number' });
+      }
+      
+      if (validationErrors.length > 0) {
+        ResponseHelper.badRequest(res, 'Validation failed', validationErrors);
+        return;
+      }
+      
+      // Check if order is being changed and conflicts
+      if (order !== undefined) {
         const stage = await Stage.findById(req.params.id);
         if (!stage) {
-          return res.status(404).json({ message: 'Stage not found' });
+          ResponseHelper.notFound(res, 'Stage');
+          return;
         }
         
         if (stage.order !== order) {
@@ -123,103 +163,128 @@ export const StageController = {
           });
           
           if (existingStage) {
-            return res.status(400).json({ 
-              message: `A stage with order ${order} already exists for this tournament` 
-            });
+            ResponseHelper.conflict(res, `A stage with order ${order} already exists for this tournament`);
+            return;
           }
         }
       }
       
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name.trim();
+      if (type !== undefined) updateData.type = type;
+      if (order !== undefined) updateData.order = order;
+      if (startDate !== undefined) updateData.startDate = startDate;
+      if (endDate !== undefined) updateData.endDate = endDate;
+      if (players !== undefined) updateData.players = players;
+      if (advancingPlayers !== undefined) updateData.advancingPlayers = advancingPlayers;
+      if (rules !== undefined) updateData.rules = rules;
+      
       const updatedStage = await Stage.findByIdAndUpdate(
         req.params.id,
-        { 
-          name, 
-          type, 
-          order,
-          startDate, 
-          endDate, 
-          players,
-          advancingPlayers,
-          rules
-        },
+        updateData,
         { new: true, runValidators: true }
       );
       
       if (!updatedStage) {
-        return res.status(404).json({ message: 'Stage not found' });
+        ResponseHelper.notFound(res, 'Stage');
+        return;
       }
       
-      res.status(200).json(updatedStage);
+      ResponseHelper.success(res, updatedStage, 'Stage updated successfully');
     } catch (error) {
       console.error('Error updating stage:', error);
-      res.status(500).json({ message: 'Error updating stage' });
+      
+      if (error instanceof Error && error.name === 'CastError') {
+        ResponseHelper.badRequest(res, 'Invalid stage ID format');
+        return;
+      }
+      
+      ResponseHelper.internalError(res, 'Error updating stage');
     }
   }) as RequestHandler,
 
   // Delete stage
-  deleteStage: (async (req: Request, res: Response) => {
+  deleteStage: (async (req: Request, res: Response): Promise<void> => {
     try {
-      // Delete the stage
       const stage = await Stage.findByIdAndDelete(req.params.id);
       
       if (!stage) {
-        return res.status(404).json({ message: 'Stage not found' });
+        ResponseHelper.notFound(res, 'Stage');
+        return;
       }
       
       // Delete all matches associated with the stage
       await Match.deleteMany({ stage: req.params.id });
       
-      res.status(200).json({ message: 'Stage and related matches deleted successfully' });
+      ResponseHelper.success(res, null, 'Stage and related matches deleted successfully');
     } catch (error) {
       console.error('Error deleting stage:', error);
-      res.status(500).json({ message: 'Error deleting stage' });
+      
+      if (error instanceof Error && error.name === 'CastError') {
+        ResponseHelper.badRequest(res, 'Invalid stage ID format');
+        return;
+      }
+      
+      ResponseHelper.internalError(res, 'Error deleting stage');
     }
   }) as RequestHandler,
 
   // Add player to stage
-  addPlayerToStage: (async (req: Request, res: Response) => {
+  addPlayerToStage: (async (req: Request, res: Response): Promise<void> => {
     try {
       const { playerId } = req.body;
+      
+      if (!playerId) {
+        ResponseHelper.badRequest(res, 'Player ID is required');
+        return;
+      }
+      
+      if (!mongoose.Types.ObjectId.isValid(playerId)) {
+        ResponseHelper.badRequest(res, 'Invalid player ID format');
+        return;
+      }
       
       const stage = await Stage.findById(req.params.id);
       
       if (!stage) {
-        return res.status(404).json({ message: 'Stage not found' });
+        ResponseHelper.notFound(res, 'Stage');
+        return;
       }
       
       // Check if player is already in the stage
       if (stage.players.includes(playerId)) {
-        return res.status(400).json({ message: 'Player is already in this stage' });
+        ResponseHelper.badRequest(res, 'Player is already in this stage');
+        return;
       }
       
       stage.players.push(playerId);
       await stage.save();
       
-      res.status(200).json(stage);
+      ResponseHelper.success(res, stage, 'Player added to stage successfully');
     } catch (error) {
       console.error('Error adding player to stage:', error);
-      res.status(500).json({ message: 'Error adding player to stage' });
+      ResponseHelper.internalError(res, 'Error adding player to stage');
     }
   }) as RequestHandler,
 
   // Generate matches for a stage
-  generateMatches: (async (req: Request, res: Response) => {
+  generateMatches: (async (req: Request, res: Response): Promise<void> => {
     try {
       const stage = await Stage.findById(req.params.id)
         .populate('tournament');
       
       if (!stage) {
-        return res.status(404).json({ message: 'Stage not found' });
+        ResponseHelper.notFound(res, 'Stage');
+        return;
       }
       
-      // Check if the stage has enough players
+      // Check if stage has enough players
       if (!stage.players || stage.players.length < 2) {
-        return res.status(400).json({ 
-          message: 'Stage must have at least 2 players to generate matches' 
-        });
+        ResponseHelper.badRequest(res, 'Stage must have at least 2 players to generate matches');
+        return;
       }
       
-      // Generate matches based on a stage type
+      // Generate matches based on stage type
       const matches = [];
       
       if (stage.type === 'GROUP' || stage.type === 'ROUND_ROBIN') {
@@ -238,7 +303,6 @@ export const StageController = {
       } else if (stage.type === 'KNOCKOUT' || stage.type === 'SEMIFINALS' || stage.type === 'FINALS') {
         // Knockout: pair players sequentially
         for (let i = 0; i < stage.players.length; i += 2) {
-          // If we have an odd number of players, the last one gets a bye
           if (i + 1 < stage.players.length) {
             matches.push({
               tournament: stage.tournament._id,
@@ -256,13 +320,16 @@ export const StageController = {
         await Match.insertMany(matches);
       }
       
-      res.status(201).json({ 
-        message: `${matches.length} matches generated successfully`,
-        matchCount: matches.length
-      });
+      ResponseHelper.success(res, { matchCount: matches.length }, `${matches.length} matches generated successfully`);
     } catch (error) {
       console.error('Error generating matches:', error);
-      res.status(500).json({ message: 'Error generating matches' });
+      
+      if (error instanceof Error && error.name === 'CastError') {
+        ResponseHelper.badRequest(res, 'Invalid stage ID format');
+        return;
+      }
+      
+      ResponseHelper.internalError(res, 'Error generating matches');
     }
   }) as RequestHandler
 };

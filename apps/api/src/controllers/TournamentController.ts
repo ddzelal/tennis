@@ -1,58 +1,104 @@
 import { Request, Response, RequestHandler } from 'express';
 import { Tournament, Stage, Match } from '../models';
 import mongoose from 'mongoose';
+import { ResponseHelper, PaginationHelper } from '../lib/utils/responseHandler';
+import { ValidationError } from '../types/response';
 
 export const TournamentController = {
     // Get all tournaments
-    getAllTournaments: (async (req: Request, res: Response) => {
-        try {
-            const tournaments = await Tournament.find()
-                .sort({createdAt: -1})
-                .populate('createdBy', 'name email');
+    getAllTournaments: (async (req: Request, res: Response): Promise<void> => {
+    try {
+            const search = req.query.search as string;
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+            
+            let query: any = {};
+            if (search && search.trim()) {
+                query = {
+                    $or: [
+                        { name: { $regex: search, $options: 'i' } },
+                        { description: { $regex: search, $options: 'i' } }
+                    ]
+                };
+            }
 
-            res.status(200).json(tournaments);
+            const total = await Tournament.countDocuments(query);
+            const skip = PaginationHelper.getSkipValue(page, limit);
+            
+            const tournaments = await Tournament.find(query)
+                .sort({ createdAt: -1 })
+                .populate('createdBy', 'name email')
+                .skip(skip)
+                .limit(limit);
+
+            const pagination = PaginationHelper.calculatePagination(page, limit, total);
+
+            ResponseHelper.paginatedSuccess(
+                res, 
+                tournaments, 
+                pagination,
+                `Found ${total} tournament(s)`
+            );
         } catch (error) {
             console.error('Error getting tournaments:', error);
-            res.status(500).json({message: 'Error getting tournaments'});
+            ResponseHelper.internalError(res, 'Error getting tournaments');
         }
     }) as RequestHandler,
 
     // Get tournament by ID
-    getTournamentById: (async (req: Request, res: Response) => {
+    getTournamentById: (async (req: Request, res: Response): Promise<void> => {
         try {
             const tournament = await Tournament.findById(req.params.id)
                 .populate('players', 'name email ranking')
                 .populate('createdBy', 'name email');
 
             if (!tournament) {
-                return res.status(404).json({message: 'Tournament not found'});
+                ResponseHelper.notFound(res, 'Tournament');
+                return;
             }
 
-            res.status(200).json(tournament);
+            ResponseHelper.success(res, tournament, 'Tournament retrieved successfully');
         } catch (error) {
             console.error('Error getting tournament:', error);
-            res.status(500).json({message: 'Error getting tournament'});
+            
+            if (error instanceof Error && error.name === 'CastError') {
+                ResponseHelper.badRequest(res, 'Invalid tournament ID format');
+                return;
+            }
+            
+            ResponseHelper.internalError(res, 'Error getting tournament');
         }
     }) as RequestHandler,
 
     // Create a new tournament
-    createTournament: (async (req: Request, res: Response) => {
+    createTournament: (async (req: Request, res: Response): Promise<void> => {
         try {
-            console.log('=== CREATE TOURNAMENT DEBUG ===');
-            console.log('Request body:', JSON.stringify(req.body, null, 2));
-            
             const { name, description, type, startDate, endDate, players, maxPlayers, rules } = req.body;
             
-            if (!name || typeof name !== 'string') {
-                console.log('❌ Name validation failed:', name);
-                return res.status(400).json({ message: 'Name is required and must be a string' });
+            const validationErrors: ValidationError[] = [];
+            
+            if (!name || name.trim() === '') {
+                validationErrors.push({ field: 'name', message: 'Name is required' });
+            }
+            
+            if (!type) {
+                validationErrors.push({ field: 'type', message: 'Type is required' });
+            }
+            
+            if (maxPlayers && (isNaN(maxPlayers) || maxPlayers < 1)) {
+                validationErrors.push({ field: 'maxPlayers', message: 'Max players must be a positive number' });
+            }
+            
+            if (validationErrors.length > 0) {
+                ResponseHelper.badRequest(res, 'Validation failed', validationErrors);
+                return;
             }
             
             const createdBy = req.body.createdBy || '000000000000000000000000';
             
-            const tournamentData = {
-                name,
-                description,
+            const tournament = new Tournament({
+                name: name.trim(),
+                description: description?.trim(),
                 type,
                 startDate,
                 endDate,
@@ -61,111 +107,119 @@ export const TournamentController = {
                 rules,
                 createdBy,
                 status: 'DRAFT'
-            };
-            
-            console.log('Tournament data to save:', JSON.stringify(tournamentData, null, 2));
-            
-            const tournament = new Tournament(tournamentData);
-            
-            console.log('About to save tournament...');
-            await tournament.save();
-            console.log('✅ Tournament saved successfully');
-            
-            res.status(201).json(tournament);
-        } catch (error: any) {
-            console.error('❌ DETAILED ERROR creating tournament:');
-            console.error('Error name:', error.name);
-            console.error('Error message:', error.message);
-            console.error('Full error:', error);
-            
-            // Return more detailed error for debugging
-            res.status(500).json({ 
-                message: 'Error creating tournament',
-                error: error.message,
-                details: error.errors ? Object.keys(error.errors) : 'No validation errors'
             });
+            
+            await tournament.save();
+            
+            ResponseHelper.created(res, tournament, 'Tournament created successfully');
+        } catch (error: any) {
+            console.error('Error creating tournament:', error);
+            ResponseHelper.internalError(res, 'Error creating tournament');
         }
     }) as RequestHandler,
 
     // Update tournament
-    updateTournament: (async (req: Request, res: Response) => {
+    updateTournament: (async (req: Request, res: Response): Promise<void> => {
         try {
-            const {
-                name,
-                description,
-                type,
-                status,
-                startDate,
-                endDate,
-                players,
-                maxPlayers,
-                rules
-            } = req.body;
+            const { name, description, type, status, startDate, endDate, players, maxPlayers, rules } = req.body;
+
+            const validationErrors: ValidationError[] = [];
+            
+            if (name !== undefined && (!name || name.trim() === '')) {
+                validationErrors.push({ field: 'name', message: 'Name cannot be empty' });
+            }
+            
+            if (maxPlayers !== undefined && (isNaN(maxPlayers) || maxPlayers < 1)) {
+                validationErrors.push({ field: 'maxPlayers', message: 'Max players must be a positive number' });
+            }
+            
+            if (validationErrors.length > 0) {
+                ResponseHelper.badRequest(res, 'Validation failed', validationErrors);
+                return;
+            }
+
+            const updateData: any = {};
+            if (name !== undefined) updateData.name = name.trim();
+            if (description !== undefined) updateData.description = description?.trim();
+            if (type !== undefined) updateData.type = type;
+            if (status !== undefined) updateData.status = status;
+            if (startDate !== undefined) updateData.startDate = startDate;
+            if (endDate !== undefined) updateData.endDate = endDate;
+            if (players !== undefined) updateData.players = players;
+            if (maxPlayers !== undefined) updateData.maxPlayers = maxPlayers;
+            if (rules !== undefined) updateData.rules = rules;
 
             const tournament = await Tournament.findByIdAndUpdate(
                 req.params.id,
-                {
-                    name,
-                    description,
-                    type,
-                    status,
-                    startDate,
-                    endDate,
-                    players,
-                    maxPlayers,
-                    rules
-                },
-                {new: true, runValidators: true}
+                updateData,
+                { new: true, runValidators: true }
             );
 
             if (!tournament) {
-                return res.status(404).json({message: 'Tournament not found'});
+                ResponseHelper.notFound(res, 'Tournament');
+                return;
             }
 
-            res.status(200).json(tournament);
+            ResponseHelper.success(res, tournament, 'Tournament updated successfully');
         } catch (error) {
             console.error('Error updating tournament:', error);
-            res.status(500).json({message: 'Error updating tournament'});
+            
+            if (error instanceof Error && error.name === 'CastError') {
+                ResponseHelper.badRequest(res, 'Invalid tournament ID format');
+                return;
+            }
+            
+            ResponseHelper.internalError(res, 'Error updating tournament');
         }
     }) as RequestHandler,
 
     // Delete tournament
-    deleteTournament: (async (req: Request, res: Response) => {
+    deleteTournament: (async (req: Request, res: Response): Promise<void> => {
         try {
             const tournament = await Tournament.findByIdAndDelete(req.params.id);
 
             if (!tournament) {
-                return res.status(404).json({message: 'Tournament not found'});
+                ResponseHelper.notFound(res, 'Tournament');
+                return;
             }
 
             // Delete related data
-            await Stage.deleteMany({tournament: req.params.id});
-            await Match.deleteMany({tournament: req.params.id});
+            await Stage.deleteMany({ tournament: req.params.id });
+            await Match.deleteMany({ tournament: req.params.id });
 
-            res.status(200).json({message: 'Tournament and related data deleted successfully'});
+            ResponseHelper.success(res, null, 'Tournament and related data deleted successfully');
         } catch (error) {
             console.error('Error deleting tournament:', error);
-            res.status(500).json({message: 'Error deleting tournament'});
+            
+            if (error instanceof Error && error.name === 'CastError') {
+                ResponseHelper.badRequest(res, 'Invalid tournament ID format');
+                return;
+            }
+            
+            ResponseHelper.internalError(res, 'Error deleting tournament');
         }
     }) as RequestHandler,
 
     // Add player to tournament
-    addPlayerToTournament: (async (req: Request, res: Response) => {
+    addPlayerToTournament: (async (req: Request, res: Response): Promise<void> => {
         try {
             const { playerId } = req.body;
 
             if (!mongoose.Types.ObjectId.isValid(playerId)) {
-                return res.status(400).json({ message: 'Invalid player ID' });
+                ResponseHelper.badRequest(res, 'Invalid player ID format');
+                return;
             }
 
             const tournament = await Tournament.findById(req.params.id);
 
             if (!tournament) {
-                return res.status(404).json({ message: 'Tournament not found' });
+                ResponseHelper.notFound(res, 'Tournament');
+                return;
             }
 
             if (tournament.maxPlayers && tournament.players.length >= tournament.maxPlayers) {
-                return res.status(400).json({ message: 'Tournament is full' });
+                ResponseHelper.badRequest(res, 'Tournament is full');
+                return;
             }
 
             const updatedTournament = await Tournament.findByIdAndUpdate(
@@ -174,20 +228,21 @@ export const TournamentController = {
                 { new: true, runValidators: true }
             );
 
-            res.status(200).json(updatedTournament);
+            ResponseHelper.success(res, updatedTournament, 'Player added to tournament successfully');
         } catch (error) {
             console.error('Error adding player to tournament:', error);
-            res.status(500).json({ message: 'Error adding player to tournament' });
+            ResponseHelper.internalError(res, 'Error adding player to tournament');
         }
     }) as RequestHandler,
 
-    // Remove player from the tournament
-    removePlayerFromTournament: (async (req: Request, res: Response) => {
+    // Remove player from tournament
+    removePlayerFromTournament: (async (req: Request, res: Response): Promise<void> => {
         try {
             const { playerId } = req.body;
 
             if (!mongoose.Types.ObjectId.isValid(playerId)) {
-                return res.status(400).json({ message: 'Invalid player ID' });
+                ResponseHelper.badRequest(res, 'Invalid player ID format');
+                return;
             }
 
             const tournament = await Tournament.findByIdAndUpdate(
@@ -197,13 +252,14 @@ export const TournamentController = {
             );
 
             if (!tournament) {
-                return res.status(404).json({ message: 'Tournament not found' });
+                ResponseHelper.notFound(res, 'Tournament');
+                return;
             }
 
-            res.status(200).json(tournament);
+            ResponseHelper.success(res, tournament, 'Player removed from tournament successfully');
         } catch (error) {
             console.error('Error removing player from tournament:', error);
-            res.status(500).json({ message: 'Error removing player from tournament' });
+            ResponseHelper.internalError(res, 'Error removing player from tournament');
         }
     }) as RequestHandler,
 };

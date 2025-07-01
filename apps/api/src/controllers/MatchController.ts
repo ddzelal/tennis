@@ -1,13 +1,18 @@
 import { Request, RequestHandler, Response } from 'express';
 import { Match, Tournament, Player, MatchStatus } from '../models';
+import { ResponseHelper, PaginationHelper } from '../lib/utils/responseHandler';
+import { ValidationError } from '../types/response';
 
 export const MatchController = {
   // Get all matches
-  getAllMatches: (async (req: Request, res: Response) => {
+  getAllMatches: (async (req: Request, res: Response): Promise<void> => {
     try {
       const { tournamentId, stageId, playerId, status } = req.query;
+      const search = req.query.search as string;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
       
-      // Build a filter object based on query parameters
+      // Build filter object
       const filter: any = {};
       
       if (tournamentId) filter.tournament = tournamentId;
@@ -20,22 +25,34 @@ export const MatchController = {
         ];
       }
       
+      const total = await Match.countDocuments(filter);
+      const skip = PaginationHelper.getSkipValue(page, limit);
+      
       const matches = await Match.find(filter)
         .sort({ scheduledDate: 1 })
         .populate('player1', 'name')
         .populate('player2', 'name')
         .populate('winner', 'name')
-        .populate('tournament', 'name');
+        .populate('tournament', 'name')
+        .skip(skip)
+        .limit(limit);
+
+      const pagination = PaginationHelper.calculatePagination(page, limit, total);
       
-      res.status(200).json(matches);
+      ResponseHelper.paginatedSuccess(
+        res, 
+        matches, 
+        pagination,
+        `Found ${total} match(es)`
+      );
     } catch (error) {
       console.error('Error getting matches:', error);
-      res.status(500).json({ message: 'Error getting matches' });
+      ResponseHelper.internalError(res, 'Error getting matches');
     }
   }) as RequestHandler,
 
   // Get match by ID
-  getMatchById: (async (req: Request, res: Response) => {
+  getMatchById: (async (req: Request, res: Response): Promise<void> => {
     try {
       const match = await Match.findById(req.params.id)
         .populate('player1', 'name email ranking')
@@ -45,32 +62,56 @@ export const MatchController = {
         .populate('stage', 'name type');
       
       if (!match) {
-        return res.status(404).json({ message: 'Match not found' });
+        ResponseHelper.notFound(res, 'Match');
+        return;
       }
       
-      res.status(200).json(match);
+      ResponseHelper.success(res, match, 'Match retrieved successfully');
     } catch (error) {
       console.error('Error getting match:', error);
-      res.status(500).json({ message: 'Error getting match' });
+      
+      if (error instanceof Error && error.name === 'CastError') {
+        ResponseHelper.badRequest(res, 'Invalid match ID format');
+        return;
+      }
+      
+      ResponseHelper.internalError(res, 'Error getting match');
     }
   }) as RequestHandler,
 
   // Create a new match
-  createMatch: (async (req: Request, res: Response) => {
+  createMatch: (async (req: Request, res: Response): Promise<void> => {
     try {
-      const { 
-        tournament, 
-        stage, 
-        player1, 
-        player2, 
-        scheduledDate,
-        status
-      } = req.body;
+      const { tournament, stage, player1, player2, scheduledDate, status } = req.body;
+      
+      const validationErrors: ValidationError[] = [];
+      
+      if (!tournament) {
+        validationErrors.push({ field: 'tournament', message: 'Tournament is required' });
+      }
+      
+      if (!player1) {
+        validationErrors.push({ field: 'player1', message: 'Player 1 is required' });
+      }
+      
+      if (!player2) {
+        validationErrors.push({ field: 'player2', message: 'Player 2 is required' });
+      }
+      
+      if (player1 === player2) {
+        validationErrors.push({ field: 'players', message: 'Players must be different' });
+      }
+      
+      if (validationErrors.length > 0) {
+        ResponseHelper.badRequest(res, 'Validation failed', validationErrors);
+        return;
+      }
       
       // Validate tournament exists
       const tournamentExists = await Tournament.exists({ _id: tournament });
       if (!tournamentExists) {
-        return res.status(400).json({ message: 'Tournament not found' });
+        ResponseHelper.badRequest(res, 'Tournament not found');
+        return;
       }
       
       // Validate players exist
@@ -78,12 +119,8 @@ export const MatchController = {
       const player2Exists = await Player.exists({ _id: player2 });
       
       if (!player1Exists || !player2Exists) {
-        return res.status(400).json({ message: 'One or both players not found' });
-      }
-      
-      // Validate players are different
-      if (player1 === player2) {
-        return res.status(400).json({ message: 'Players must be different' });
+        ResponseHelper.badRequest(res, 'One or both players not found');
+        return;
       }
       
       const match = new Match({
@@ -98,93 +135,108 @@ export const MatchController = {
       
       await match.save();
       
-      res.status(201).json(match);
+      ResponseHelper.created(res, match, 'Match created successfully');
     } catch (error) {
       console.error('Error creating match:', error);
-      res.status(500).json({ message: 'Error creating match' });
+      ResponseHelper.internalError(res, 'Error creating match');
     }
   }) as RequestHandler,
 
   // Update match
-  updateMatch: (async (req: Request, res: Response) => {
+  updateMatch: (async (req: Request, res: Response): Promise<void> => {
     try {
-      const { 
-        tournament, 
-        stage, 
-        player1, 
-        player2, 
-        scheduledDate,
-        completedDate,
-        status,
-        sets,
-        winner,
-        notes
-      } = req.body;
+      const { tournament, stage, player1, player2, scheduledDate, completedDate, status, sets, winner, notes } = req.body;
       
-      // If players are being updated, validate they are different
+      // Validate players are different if both provided
       if (player1 && player2 && player1 === player2) {
-        return res.status(400).json({ message: 'Players must be different' });
+        ResponseHelper.badRequest(res, 'Players must be different');
+        return;
       }
+      
+      const updateData: any = {};
+      if (tournament !== undefined) updateData.tournament = tournament;
+      if (stage !== undefined) updateData.stage = stage;
+      if (player1 !== undefined) updateData.player1 = player1;
+      if (player2 !== undefined) updateData.player2 = player2;
+      if (scheduledDate !== undefined) updateData.scheduledDate = scheduledDate;
+      if (completedDate !== undefined) updateData.completedDate = completedDate;
+      if (status !== undefined) updateData.status = status;
+      if (sets !== undefined) updateData.sets = sets;
+      if (winner !== undefined) updateData.winner = winner;
+      if (notes !== undefined) updateData.notes = notes;
       
       const match = await Match.findByIdAndUpdate(
         req.params.id,
-        { 
-          tournament, 
-          stage, 
-          player1, 
-          player2, 
-          scheduledDate,
-          completedDate,
-          status,
-          sets,
-          winner,
-          notes
-        },
+        updateData,
         { new: true, runValidators: true }
       );
       
       if (!match) {
-        return res.status(404).json({ message: 'Match not found' });
+        ResponseHelper.notFound(res, 'Match');
+        return;
       }
       
-      res.status(200).json(match);
+      ResponseHelper.success(res, match, 'Match updated successfully');
     } catch (error) {
       console.error('Error updating match:', error);
-      res.status(500).json({ message: 'Error updating match' });
+      
+      if (error instanceof Error && error.name === 'CastError') {
+        ResponseHelper.badRequest(res, 'Invalid match ID format');
+        return;
+      }
+      
+      ResponseHelper.internalError(res, 'Error updating match');
     }
   }) as RequestHandler,
 
   // Delete match
-  deleteMatch: (async (req: Request, res: Response) => {
+  deleteMatch: (async (req: Request, res: Response): Promise<void> => {
     try {
       const match = await Match.findByIdAndDelete(req.params.id);
       
       if (!match) {
-        return res.status(404).json({ message: 'Match not found' });
+        ResponseHelper.notFound(res, 'Match');
+        return;
       }
       
-      res.status(200).json({ message: 'Match deleted successfully' });
+      ResponseHelper.success(res, null, 'Match deleted successfully');
     } catch (error) {
       console.error('Error deleting match:', error);
-      res.status(500).json({ message: 'Error deleting match' });
+      
+      if (error instanceof Error && error.name === 'CastError') {
+        ResponseHelper.badRequest(res, 'Invalid match ID format');
+        return;
+      }
+      
+      ResponseHelper.internalError(res, 'Error deleting match');
     }
   }) as RequestHandler,
 
   // Record match result
-  recordMatchResult: (async (req: Request, res: Response) => {
+  recordMatchResult: (async (req: Request, res: Response): Promise<void> => {
     try {
       const { sets, winner } = req.body;
       
-      // Validate sets data
+      const validationErrors: ValidationError[] = [];
+      
       if (!sets || !Array.isArray(sets) || sets.length === 0) {
-        return res.status(400).json({ message: 'Sets data is required' });
+        validationErrors.push({ field: 'sets', message: 'Sets data is required and must be an array' });
       }
       
-      // Find the match
+      if (!winner) {
+        validationErrors.push({ field: 'winner', message: 'Winner is required' });
+      }
+      
+      if (validationErrors.length > 0) {
+        ResponseHelper.badRequest(res, 'Validation failed', validationErrors);
+        return;
+      }
+      
       const match = await Match.findById(req.params.id);
       
       if (!match) {
-        return res.status(404).json({ message: 'Match not found' });
+        ResponseHelper.notFound(res, 'Match');
+        return;
       }
       
       // Update match with results
@@ -195,10 +247,16 @@ export const MatchController = {
       
       await match.save();
       
-      res.status(200).json(match);
+      ResponseHelper.success(res, match, 'Match result recorded successfully');
     } catch (error) {
       console.error('Error recording match result:', error);
-      res.status(500).json({ message: 'Error recording match result' });
+      
+      if (error instanceof Error && error.name === 'CastError') {
+        ResponseHelper.badRequest(res, 'Invalid match ID format');
+        return;
+      }
+      
+      ResponseHelper.internalError(res, 'Error recording match result');
     }
   }) as RequestHandler
 };
