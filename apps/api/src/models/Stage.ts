@@ -1,92 +1,90 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { IStageDocument, StageType, StageStatus, StageRules } from '@repo/lib';
 
-export enum StageType {
-  GROUP = 'GROUP',
-  ROUND_ROBIN = 'ROUND_ROBIN',
-  KNOCKOUT = 'KNOCKOUT',
-  SEMIFINALS = 'SEMIFINALS',
-  FINALS = 'FINALS',
-  CUSTOM = 'CUSTOM',
-}
+export interface IStage extends IStageDocument, Document {}
 
-export enum SeedingType {
-  RANDOM = 'RANDOM',
-  RANKING = 'RANKING',
-  CROSS_GROUP = 'CROSS_GROUP',
-  CUSTOM = 'CUSTOM',
-}
-
-export interface IGroup {
-  name: string;
-  players: mongoose.Types.ObjectId[];
-}
-
-export interface IStage extends Document {
-  tournament: mongoose.Types.ObjectId;
-  name: string;
-  type: StageType;
-  order: number;
-  startDate?: Date;
-  endDate?: Date;
-  players: mongoose.Types.ObjectId[];
-  groups?: IGroup[];
-  advancingPlayers?: number;
-  advancingPerGroup?: number;
-  seedingType?: SeedingType;
-  rules?: {
-    matchesPerPlayer?: number;
-    scoringSystem?: string;
-    setsToWin?: number;
-    gamesPerSet?: number;
-    tieBreak?: boolean;
-    pointsPerWin?: number;
-    pointsPerLoss?: number;
-    pointsPerDraw?: number;
-    tiebreakers?: string[];
-  };
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const GroupSchema = new Schema<IGroup>({
-  name: { type: String, required: true },
-  players: [{ type: Schema.Types.ObjectId, ref: 'Player' }],
+const StageRulesSchema = new Schema<StageRules>({
+    setsToWin: { type: Number, default: 2 },
+    tieBreak: { type: Boolean, default: true },
+    pointsPerWin: { type: Number, default: 2 },
+    pointsPerLoss: { type: Number, default: 0 },
+    pointsPerDraw: { type: Number, default: 1 },
 }, { _id: false });
 
 const StageSchema = new Schema<IStage>(
-  {
-    tournament: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
-    name: { type: String, required: true },
-    type: { 
-      type: String, 
-      enum: Object.values(StageType), 
-      required: true 
+    {
+        tournament: {
+            type: Schema.Types.ObjectId,
+            ref: 'Tournament',
+            required: [true, 'Tournament is required']
+        },
+        name: {
+            type: String,
+            required: [true, 'Stage name is required'],
+            trim: true,
+            maxlength: [100, 'Stage name cannot exceed 100 characters']
+        },
+        type: {
+            type: String,
+            enum: Object.values(StageType),
+            required: [true, 'Stage type is required']
+        },
+        status: {
+            type: String,
+            enum: Object.values(StageStatus),
+            default: StageStatus.SCHEDULED
+        },
+        order: {
+            type: Number,
+            required: [true, 'Stage order is required'],
+            min: [1, 'Order must be at least 1']
+        },
+        startDate: { type: Date },
+        endDate: {
+            type: Date,
+            validate: {
+                validator: function(value: Date) {
+                    if (value && this.startDate) {
+                        return value > this.startDate;
+                    }
+                    return true;
+                },
+                message: 'End date must be after start date'
+            }
+        },
+        players: [{
+            type: Schema.Types.ObjectId,
+            ref: 'Player'
+        }],
+        advancingPlayers: {
+            type: Number,
+            min: [0, 'Advancing players cannot be negative']
+        },
+        rules: {
+            type: StageRulesSchema,
+            default: () => ({})
+        }
     },
-    order: { type: Number, required: true },
-    startDate: { type: Date },
-    endDate: { type: Date },
-    players: [{ type: Schema.Types.ObjectId, ref: 'Player' }],
-    groups: [GroupSchema],
-    advancingPlayers: { type: Number },
-    advancingPerGroup: { type: Number },
-    seedingType: { 
-      type: String, 
-      enum: Object.values(SeedingType), 
-      default: SeedingType.RANDOM 
-    },
-    rules: {
-      matchesPerPlayer: { type: Number },
-      scoringSystem: { type: String },
-      setsToWin: { type: Number, default: 2 }, // Best of 3 sets by default
-      gamesPerSet: { type: Number, default: 6 }, // 6 games per set by default
-      tieBreak: { type: Boolean, default: true }, // Use tiebreak at 6-6 by default
-      pointsPerWin: { type: Number },
-      pointsPerLoss: { type: Number },
-      pointsPerDraw: { type: Number },
-      tiebreakers: [{ type: String }],
-    },
-  },
-  { timestamps: true }
+    {
+        timestamps: true,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
+    }
 );
 
+// Virtual fields
+StageSchema.virtual('playerCount').get(function() {
+    return this.players ? this.players.length : 0;
+});
+
+StageSchema.virtual('isCompleted').get(function() {
+    return this.status === StageStatus.COMPLETED;
+});
+
+// Indexes
+StageSchema.index({ tournament: 1, order: 1 });
+StageSchema.index({ type: 1 });
+StageSchema.index({ status: 1 });
+
 export const Stage = mongoose.model<IStage>('Stage', StageSchema);
+export default Stage;

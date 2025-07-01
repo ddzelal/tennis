@@ -2,6 +2,7 @@ import { Request, Response, RequestHandler } from 'express';
 import { Player } from '../models';
 import { ResponseHelper, PaginationHelper } from '../lib/utils/responseHandler';
 import { ValidationError } from '../types/response';
+import { CreatePlayerData, UpdatePlayerData } from '@repo/lib';
 
 export const PlayerController = {
   // Get all players with optional search and pagination
@@ -17,8 +18,8 @@ export const PlayerController = {
       if (search && search.trim()) {
         query = {
           $or: [
-            { name: { $regex: search, $options: 'i' } },
-            { email: { $regex: search, $options: 'i' } }
+            { firstName: { $regex: search, $options: 'i' } },
+            { lastName: { $regex: search, $options: 'i' } }
           ]
         };
       }
@@ -29,7 +30,7 @@ export const PlayerController = {
       // Get paginated results
       const skip = PaginationHelper.getSkipValue(page, limit);
       const players = await Player.find(query)
-        .sort({ name: 1 })
+        .sort({ firstName: 1, lastName: 1 })
         .skip(skip)
         .limit(limit);
 
@@ -76,39 +77,45 @@ export const PlayerController = {
   // Create a new player
   createPlayer: (async (req: Request, res: Response) => {
     try {
-      const { name, email, phone, ranking } = req.body;
+      const { firstName, lastName, dateOfBirth, ranking }: CreatePlayerData = req.body;
       
       // Validation
       const validationErrors: ValidationError[] = [];
       
-      if (!name || name.trim() === '') {
-        validationErrors.push({ field: 'name', message: 'Name is required' });
+      if (!firstName || firstName.trim() === '') {
+        validationErrors.push({ field: 'firstName', message: 'First name is required' });
       }
       
-      if (!email || email.trim() === '') {
-        validationErrors.push({ field: 'email', message: 'Email is required' });
+      if (!lastName || lastName.trim() === '') {
+        validationErrors.push({ field: 'lastName', message: 'Last name is required' });
       }
       
-      if (ranking && (isNaN(ranking) || ranking < 1)) {
-        validationErrors.push({ field: 'ranking', message: 'Ranking must be a positive number' });
+      if (!dateOfBirth) {
+        validationErrors.push({ field: 'dateOfBirth', message: 'Date of birth is required' });
+      } else {
+        // Validate date format and that it's in the past
+        const birthDate = new Date(dateOfBirth);
+        if (isNaN(birthDate.getTime())) {
+          validationErrors.push({ field: 'dateOfBirth', message: 'Invalid date format' });
+        } else if (birthDate >= new Date()) {
+          validationErrors.push({ field: 'dateOfBirth', message: 'Date of birth must be in the past' });
+        }
+      }
+      
+      if (ranking !== undefined && (isNaN(ranking) || ranking < 1 || ranking > 10000)) {
+        validationErrors.push({ field: 'ranking', message: 'Ranking must be between 1 and 10000' });
       }
       
       if (validationErrors.length > 0) {
         return ResponseHelper.badRequest(res, 'Validation failed', validationErrors);
       }
       
-      // Check if player with email already exists
-      const existingPlayer = await Player.findOne({ email: email.trim() });
-      if (existingPlayer) {
-        return ResponseHelper.conflict(res, 'Player with this email already exists');
-      }
-      
       // Create new player
       const player = new Player({
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone?.trim(),
-        ranking
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        dateOfBirth: new Date(dateOfBirth),
+        ranking: ranking || null
       });
       
       await player.save();
@@ -117,6 +124,12 @@ export const PlayerController = {
       
     } catch (error) {
       console.error('Error creating player:', error);
+      
+      // Handle mongoose validation errors
+      if (error instanceof Error && error.name === 'ValidationError') {
+        return ResponseHelper.badRequest(res, 'Validation failed');
+      }
+      
       return ResponseHelper.internalError(res, 'Error creating player');
     }
   }) as RequestHandler,
@@ -124,46 +137,48 @@ export const PlayerController = {
   // Update player
   updatePlayer: (async (req: Request, res: Response) => {
     try {
-      const { name, email, phone, ranking } = req.body;
+      const { firstName, lastName, dateOfBirth, ranking }: UpdatePlayerData = req.body;
       
       // Validation
       const validationErrors: ValidationError[] = [];
       
-      if (name !== undefined && (!name || name.trim() === '')) {
-        validationErrors.push({ field: 'name', message: 'Name cannot be empty' });
+      if (firstName !== undefined && (!firstName || firstName.trim() === '')) {
+        validationErrors.push({ field: 'firstName', message: 'First name cannot be empty' });
       }
       
-      if (email !== undefined && (!email || email.trim() === '')) {
-        validationErrors.push({ field: 'email', message: 'Email cannot be empty' });
+      if (lastName !== undefined && (!lastName || lastName.trim() === '')) {
+        validationErrors.push({ field: 'lastName', message: 'Last name cannot be empty' });
       }
       
-      if (ranking !== undefined && (isNaN(ranking) || ranking < 1)) {
-        validationErrors.push({ field: 'ranking', message: 'Ranking must be a positive number' });
+      if (dateOfBirth !== undefined) {
+        if (!dateOfBirth) {
+          validationErrors.push({ field: 'dateOfBirth', message: 'Date of birth cannot be empty' });
+        } else {
+          const birthDate = new Date(dateOfBirth);
+          if (isNaN(birthDate.getTime())) {
+            validationErrors.push({ field: 'dateOfBirth', message: 'Invalid date format' });
+          } else if (birthDate >= new Date()) {
+            validationErrors.push({ field: 'dateOfBirth', message: 'Date of birth must be in the past' });
+          }
+        }
+      }
+      
+      if (ranking !== undefined && (isNaN(ranking) || ranking < 1 || ranking > 10000)) {
+        validationErrors.push({ field: 'ranking', message: 'Ranking must be between 1 and 10000' });
       }
       
       if (validationErrors.length > 0) {
         return ResponseHelper.badRequest(res, 'Validation failed', validationErrors);
       }
       
-      // Check if email is being changed and already exists
-      if (email) {
-        const existingPlayer = await Player.findOne({ 
-          email: email.trim(), 
-          _id: { $ne: req.params.id } 
-        });
-        
-        if (existingPlayer) {
-          return ResponseHelper.conflict(res, 'Player with this email already exists');
-        }
-      }
-      
-      // Update player
+      // Build update data
       const updateData: any = {};
-      if (name !== undefined) updateData.name = name.trim();
-      if (email !== undefined) updateData.email = email.trim();
-      if (phone !== undefined) updateData.phone = phone?.trim();
+      if (firstName !== undefined) updateData.firstName = firstName.trim();
+      if (lastName !== undefined) updateData.lastName = lastName.trim();
+      if (dateOfBirth !== undefined) updateData.dateOfBirth = new Date(dateOfBirth);
       if (ranking !== undefined) updateData.ranking = ranking;
       
+      // Update player
       const player = await Player.findByIdAndUpdate(
         req.params.id,
         updateData,
@@ -181,6 +196,10 @@ export const PlayerController = {
       
       if (error instanceof Error && error.name === 'CastError') {
         return ResponseHelper.badRequest(res, 'Invalid player ID format');
+      }
+      
+      if (error instanceof Error && error.name === 'ValidationError') {
+        return ResponseHelper.badRequest(res, 'Validation failed');
       }
       
       return ResponseHelper.internalError(res, 'Error updating player');

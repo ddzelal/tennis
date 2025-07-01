@@ -1,12 +1,17 @@
 import express, { type Request, type Response } from 'express';
 import { connectToDatabase } from './lib/db';
 import routes from './routes';
+import cors from 'cors';
 
+
+// Initialize Express app
 const app = express();
 const port = process.env.PORT || 3000;
 
+
 // Middleware
 app.use(express.json());
+app.use(cors());
 
 //CORS configuration allowing all origins
 app.use((req: Request, res: Response, next: any) => {

@@ -1,11 +1,27 @@
 @apiUrl = {{baseUrl}}/api/players
 
+### ==============================================
+### 🧪 TEST ENDPOINTS FIRST
+### ==============================================
+
+### Test API connection
+GET {{baseUrl}}/api/test
+Accept: application/json
+
+### Test players endpoint
+GET {{apiUrl}}/test
+Accept: application/json
+
+### ==============================================
+### 📋 GET OPERATIONS
+### ==============================================
+
 ### Get all players
 GET {{apiUrl}}
 Accept: application/json
 
 ### Get all players with search
-GET {{apiUrl}}?search=Novak
+GET {{apiUrl}}?search=Dzelal
 Accept: application/json
 
 ### Get all players with pagination
@@ -16,97 +32,298 @@ Accept: application/json
 GET {{apiUrl}}/676d8f123456789012345678
 Accept: application/json
 
-### Create new player - Valid data
+### ==============================================
+### 👥 CREATE TENNIS PLAYERS - UPDATED SCHEMA
+### ==============================================
+
+### Create Player 1 - Dzelal Dupljak
 POST {{apiUrl}}
 Content-Type: application/json
 
 {
-  "name": "Novak Djokovic",
-  "email": "novak@example.com",
-  "phone": "+381601234567",
+  "firstName": "Dzelal",
+  "lastName": "Dupljak",
+  "dateOfBirth": "1990-03-15",
   "ranking": 1
 }
 
-### Create another player
+> {%
+    if (response.status === 201) {
+        client.global.set("dzelal_id", response.body._id);
+        console.log("✅ Dzelal created:", response.body._id);
+    }
+%}
+
+### Create Player 2 - Eldar Idrizovic
 POST {{apiUrl}}
 Content-Type: application/json
 
 {
-  "name": "Rafael Nadal",
-  "email": "rafa@example.com",
-  "phone": "+34612345678",
+  "firstName": "Eldar",
+  "lastName": "Idrizovic",
+  "dateOfBirth": "1988-07-22",
   "ranking": 2
 }
 
-### Create third player
+> {%
+    if (response.status === 201) {
+        client.global.set("eldar_id", response.body._id);
+        console.log("✅ Eldar created:", response.body._id);
+    }
+%}
+
+### Create Player 3 - Duco Alic
 POST {{apiUrl}}
 Content-Type: application/json
 
 {
-  "name": "Roger Federer",
-  "email": "roger@example.com",
-  "phone": "+41791234567",
+  "firstName": "Duco",
+  "lastName": "Alic",
+  "dateOfBirth": "1992-11-08",
   "ranking": 3
 }
 
-### Create player - Test duplicate email (should fail)
+> {%
+    if (response.status === 201) {
+        client.global.set("duco_id", response.body._id);
+        console.log("✅ Duco created:", response.body._id);
+    }
+%}
+
+### Create Player 4 - Armin Mujkovic
 POST {{apiUrl}}
 Content-Type: application/json
 
 {
-  "name": "Duplicate Test",
-  "email": "novak@example.com",
-  "phone": "+381601234568",
+  "firstName": "Armin",
+  "lastName": "Mujkovic",
+  "dateOfBirth": "1985-12-03",
+  "ranking": 4
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("armin_id", response.body._id);
+        console.log("✅ Armin created:", response.body._id);
+    }
+%}
+
+### Create Player 5 - Edin Preljevic
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Edin",
+  "lastName": "Preljevic",
+  "dateOfBirth": "1989-05-18",
+  "ranking": 5
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("edin_id", response.body._id);
+        console.log("✅ Edin created:", response.body._id);
+    }
+%}
+
+### Create Player 6 - Bano Beno
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Bano",
+  "lastName": "Beno",
+  "dateOfBirth": "1991-09-25",
+  "ranking": 6
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("bano_id", response.body._id);
+        console.log("✅ Bano created:", response.body._id);
+    }
+%}
+
+### Create Player 7 - Ferid Ferid
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Ferid",
+  "lastName": "Ferid",
+  "dateOfBirth": "1987-01-14",
+  "ranking": 7
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("ferid_id", response.body._id);
+        console.log("✅ Ferid created:", response.body._id);
+    }
+%}
+
+### Create Player 8 - Seid Seid
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Seid",
+  "lastName": "Seid",
+  "dateOfBirth": "1993-04-07",
+  "ranking": 8
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("seid_id", response.body._id);
+        console.log("✅ Seid created:", response.body._id);
+    }
+%}
+
+### Create Player 9 - Fuad Tutic
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Fuad",
+  "lastName": "Tutic",
+  "dateOfBirth": "1986-10-12",
+  "ranking": 9
+}
+
+> {%
+    if (response.status === 201) {
+        client.global.set("fuad_id", response.body._id);
+        console.log("✅ Fuad created:", response.body._id);
+    }
+%}
+
+### Create Player 10 - Mehmed Gicic
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Mehmed",
+  "lastName": "Gicic",
+  "dateOfBirth": "1994-08-30",
   "ranking": 10
 }
 
-### Create player - Test missing required fields
+> {%
+    if (response.status === 201) {
+        client.global.set("mehmed_id", response.body._id);
+        console.log("✅ Mehmed created:", response.body._id);
+    }
+%}
+
+### ==============================================
+### 📊 VERIFY ALL PLAYERS CREATED
+### ==============================================
+
+### Get all players to verify they're created
+GET {{apiUrl}}
+Accept: application/json
+
+### Get players with ranking filter
+GET {{apiUrl}}?search=Dupljak
+Accept: application/json
+
+### ==============================================
+### ✏️ UPDATE OPERATIONS
+### ==============================================
+
+### Update player - Example with Dzelal
+PUT {{apiUrl}}/{{dzelal_id}}
+Content-Type: application/json
+
+{
+  "firstName": "Dzelal",
+  "lastName": "Dupljak",
+  "dateOfBirth": "1990-03-15",
+  "ranking": 1
+}
+
+### Update partial player data - only ranking
+PUT {{apiUrl}}/{{eldar_id}}
+Content-Type: application/json
+
+{
+  "ranking": 15
+}
+
+### ==============================================
+### 🧪 VALIDATION TESTS
+### ==============================================
+
+### Test missing required fields
 POST {{apiUrl}}
 Content-Type: application/json
 
 {
-  "name": "",
-  "email": "invalid-email",
-  "ranking": 5
+  "firstName": "",
+  "lastName": "",
+  "dateOfBirth": ""
 }
 
-### Update player (replace ID with actual player ID)
-PUT {{apiUrl}}/676d8f123456789012345678
+### Test invalid date format
+POST {{apiUrl}}
 Content-Type: application/json
 
 {
-  "name": "Novak Djokovic Updated",
-  "email": "novak.updated@example.com",
-  "phone": "+381601234567",
-  "ranking": 1
+  "firstName": "Test",
+  "lastName": "Player",
+  "dateOfBirth": "invalid-date",
+  "ranking": 100
 }
 
-### Update player - Test duplicate email (should fail)
-PUT {{apiUrl}}/676d8f123456789012345678
+### Test future date (should fail)
+POST {{apiUrl}}
 Content-Type: application/json
 
 {
-  "name": "Novak Djokovic",
-  "email": "rafa@example.com",
-  "phone": "+381601234567",
-  "ranking": 1
+  "firstName": "Future",
+  "lastName": "Player",
+  "dateOfBirth": "2030-01-01",
+  "ranking": 100
 }
 
-### Update partial player data
-PUT {{apiUrl}}/676d8f123456789012345678
+### Test invalid ranking (too high)
+POST {{apiUrl}}
 Content-Type: application/json
 
 {
-  "ranking": 5
+  "firstName": "High",
+  "lastName": "Ranking",
+  "dateOfBirth": "1990-01-01",
+  "ranking": 15000
 }
+
+### Test invalid ranking (negative)
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Negative",
+  "lastName": "Ranking",
+  "dateOfBirth": "1990-01-01",
+  "ranking": -5
+}
+
+### ==============================================
+### 🗑️ DELETE OPERATIONS
+### ==============================================
 
 ### Delete player (replace with actual ID)
-DELETE {{apiUrl}}/676d8f123456789012345678
+DELETE {{apiUrl}}/{{mehmed_id}}
 Accept: application/json
 
 ### Delete non-existing player (should return 404)
 DELETE {{apiUrl}}/676d8f123456789012345999
 Accept: application/json
+
+### ==============================================
+### 🚨 ERROR TESTING
+### ==============================================
 
 ### Test invalid player ID format
 GET {{apiUrl}}/invalid-id-format
@@ -115,3 +332,68 @@ Accept: application/json
 ### Test non-existing player ID
 GET {{apiUrl}}/676d8f123456789012345999
 Accept: application/json
+
+### Update non-existing player
+PUT {{apiUrl}}/676d8f123456789012345999
+Content-Type: application/json
+
+{
+  "firstName": "Non",
+  "lastName": "Existing",
+  "dateOfBirth": "1990-01-01",
+  "ranking": 100
+}
+
+### ==============================================
+### 🎾 BONUS: CREATE ADDITIONAL TEST PLAYERS
+### ==============================================
+
+### Create player without ranking (optional field)
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Unranked",
+  "lastName": "Player",
+  "dateOfBirth": "1995-06-15"
+}
+
+### Create young player (18 years old)
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Young",
+  "lastName": "Talent",
+  "dateOfBirth": "2006-01-01",
+  "ranking": 500
+}
+
+### Create veteran player (45 years old)
+POST {{apiUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Veteran",
+  "lastName": "Champion",
+  "dateOfBirth": "1979-12-31",
+  "ranking": 250
+}
+
+### ==============================================
+### ✅ PLAYER OPERATIONS COMPLETE!
+###
+### Summary of created players:
+### 1. ✅ Dzelal Dupljak (Ranking #1)
+### 2. ✅ Eldar Idrizovic (Ranking #2)
+### 3. ✅ Duco Alic (Ranking #3)
+### 4. ✅ Armin Mujkovic (Ranking #4)
+### 5. ✅ Edin Preljevic (Ranking #5)
+### 6. ✅ Bano Beno (Ranking #6)
+### 7. ✅ Ferid Ferid (Ranking #7)
+### 8. ✅ Seid Seid (Ranking #8)
+### 9. ✅ Fuad Tutic (Ranking #9)
+### 10. ✅ Mehmed Gicic (Ranking #10)
+###
+### 🎾 All players ready for tournament action!
+### ==============================================
