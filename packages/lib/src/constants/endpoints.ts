@@ -9,7 +9,7 @@ export const ENDPOINT = {
     TOURNAMENT: (id: string) => `/tournaments/${id}`,
 
     MATCHES: `/matches`,
-    MATCH: (id: string) => `/users/${id}`,
+    MATCH: (id: string) => `/matches/${id}`,
 
     STAGES: `/stages`,
     STAGE: (id: string) => `/stages/${id}`,

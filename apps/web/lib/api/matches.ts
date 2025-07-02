@@ -1,5 +1,4 @@
 import { api } from './request';
-
 import {ENDPOINT, Match, MatchQueryParams, MatchSet, PaginatedResponse} from '@repo/lib';
 
 export const matchesApi = {
@@ -22,7 +21,7 @@ export const matchesApi = {
 
     // Get match by ID
     getMatch: async (id: string): Promise<Match> => {
-        return api.get<Match>(ENDPOINT.MATCH(id));
+        return api.getSingle<Match>(ENDPOINT.MATCH(id));
     },
 
     // Create new match
@@ -58,11 +57,11 @@ export const matchesApi = {
         return api.delete<void>(ENDPOINT.MATCH(id));
     },
 
-    // Record match result
+    // Record match result - FIXED: Changed PUT to POST
     recordMatchResult: async (id: string, data: {
         sets: MatchSet[];
         winner: string;
     }): Promise<Match> => {
-        return api.put<Match>(`${ENDPOINT.MATCH(id)}/result`, data);
+        return api.post<Match>(`${ENDPOINT.MATCH(id)}/result`, data);
     },
 };
