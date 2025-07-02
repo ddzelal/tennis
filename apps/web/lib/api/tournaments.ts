@@ -1,12 +1,12 @@
 import { api } from './request';
 import {
-  Tournament,
   CreateTournamentData,
-  UpdateTournamentData,
+  ENDPOINT,
   PaginatedResponse,
-  TournamentQueryParams
-} from '../types/global';
-import { ENDPOINT } from '@repo/lib';
+  Tournament,
+  TournamentQueryParams,
+  UpdateTournamentData
+} from '@repo/lib';
 
 export const tournamentsApi = {
   // Get all tournaments with pagination and search
@@ -23,9 +23,11 @@ export const tournamentsApi = {
     return api.get<PaginatedResponse<Tournament>>(endpoint);
   },
 
-  // Get tournament by ID
   getTournament: async (id: string): Promise<Tournament> => {
-    return api.get<Tournament>(ENDPOINT.TOURNAMENT(id));
+    console.log('🎾 API: Fetching tournament with ID:', id);
+    const result = await api.getSingle<Tournament>(ENDPOINT.TOURNAMENT(id));
+    console.log('🎾 API: Tournament result:', result);
+    return result;
   },
 
   // Create new tournament
@@ -43,9 +45,8 @@ export const tournamentsApi = {
     return api.delete<void>(ENDPOINT.TOURNAMENT(id));
   },
 
-  // Add player to tournament
   addPlayerToTournament: async (tournamentId: string, playerId: string): Promise<Tournament> => {
-    return api.put<Tournament>(`${ENDPOINT.TOURNAMENT(tournamentId)}/players`, { playerId });
+    return api.post<Tournament>(`${ENDPOINT.TOURNAMENT(tournamentId)}/players`, { playerId });
   },
 
   // Remove player from tournament

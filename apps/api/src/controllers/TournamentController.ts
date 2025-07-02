@@ -49,7 +49,7 @@ export const TournamentController = {
     getTournamentById: (async (req: Request, res: Response): Promise<void> => {
         try {
             const tournament = await Tournament.findById(req.params.id)
-                .populate('players', 'name email ranking')
+                .populate('players', 'firstName lastName ranking')
                 .populate('createdBy', 'name email');
 
             if (!tournament) {

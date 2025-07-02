@@ -1,11 +1,6 @@
 import { api } from './request';
-import {
-    Match,
-    MatchSet,
-    PaginatedResponse,
-    MatchQueryParams
-} from '../types/global';
-import { ENDPOINT } from '@repo/lib';
+
+import {ENDPOINT, Match, MatchQueryParams, MatchSet, PaginatedResponse} from '@repo/lib';
 
 export const matchesApi = {
     // Get all matches with filtering

@@ -7,11 +7,8 @@ import {
     UseMutationOptions
 } from '@tanstack/react-query';
 import { stagesApi } from '../api';
-import {
-    Stage,
-    PaginatedResponse,
-    StageQueryParams
-} from '../types/global';
+import {PaginatedResponse, Stage, StageQueryParams} from "@repo/lib";
+
 
 // Query keys
 export const stageKeys = {

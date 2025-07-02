@@ -1,10 +1,5 @@
 import { api } from './request';
-import {
-    Stage,
-    PaginatedResponse,
-    StageQueryParams
-} from '../types/global';
-import { ENDPOINT } from '@repo/lib';
+import {ENDPOINT, PaginatedResponse, Stage, StageQueryParams} from '@repo/lib';
 
 export const stagesApi = {
     // Get all stages with filtering
@@ -26,7 +21,7 @@ export const stagesApi = {
         return api.get<Stage>(ENDPOINT.STAGE(id));
     },
 
-    // Create new stage
+    // Create a new stage
     createStage: async (data: {
         tournament: string;
         name: string;

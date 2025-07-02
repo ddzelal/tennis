@@ -6,12 +6,8 @@ import {
     UseMutationOptions
 } from '@tanstack/react-query';
 import { matchesApi } from '../api';
-import {
-    Match,
-    MatchSet,
-    PaginatedResponse,
-    MatchQueryParams
-} from '../types/global';
+import {Match, MatchQueryParams, MatchSet, PaginatedResponse} from "@repo/lib";
+
 
 // Query keys
 export const matchKeys = {

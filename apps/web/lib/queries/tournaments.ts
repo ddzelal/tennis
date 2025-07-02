@@ -7,14 +7,15 @@ import {
 } from '@tanstack/react-query';
 import { tournamentsApi } from '../api';
 import {
-    Tournament,
     CreateTournamentData,
-    UpdateTournamentData,
     PaginatedResponse,
-    TournamentQueryParams
-} from '../types/global';
+    Tournament,
+    TournamentQueryParams,
+    UpdateTournamentData
+} from "@repo/lib";
 
-// Query keys
+
+// Query keys - BOLJA STRUKTURA
 export const tournamentKeys = {
     all: ['tournaments'] as const,
     lists: () => [...tournamentKeys.all, 'list'] as const,
@@ -48,38 +49,93 @@ export const useGetTournament = (
     });
 };
 
-// Create tournament mutation
 export const useCreateTournament = (
     options?: UseMutationOptions<Tournament, Error, CreateTournamentData>
 ) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: tournamentsApi.createTournament,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: tournamentKeys.lists() });
+        mutationFn: (data: CreateTournamentData) => {
+            return tournamentsApi.createTournament(data);
         },
-        ...options,
+        onSuccess: async (newTournament: Tournament, variables: CreateTournamentData, context?: any) => {
+            try {
+                await queryClient.invalidateQueries({
+                    queryKey: tournamentKeys.all
+                });
+
+                await queryClient.refetchQueries({
+                    queryKey: tournamentKeys.lists(),
+                    type: 'active'
+                });
+
+                if (options?.onSuccess) {
+                    options.onSuccess(newTournament, variables, context);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error in onSuccess:', error);
+            }
+        },
+        onError: (error: Error, variables: CreateTournamentData, context?: any) => {
+            console.error('❌ CREATE ERROR:', error);
+            if (options?.onError) {
+                options.onError(error, variables, context);
+            }
+        },
+        mutationKey: options?.mutationKey,
+        meta: options?.meta,
+        networkMode: options?.networkMode,
+        retry: options?.retry,
+        retryDelay: options?.retryDelay,
     });
 };
 
-// Update tournament mutation
 export const useUpdateTournament = (
     options?: UseMutationOptions<Tournament, Error, { id: string; data: UpdateTournamentData }>
 ) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, data }) => tournamentsApi.updateTournament(id, data),
-        onSuccess: (data, variables) => {
-            queryClient.setQueryData(tournamentKeys.detail(variables.id), data);
-            queryClient.invalidateQueries({ queryKey: tournamentKeys.lists() });
+        mutationFn: ({ id, data }: { id: string; data: UpdateTournamentData }) => {
+            return tournamentsApi.updateTournament(id, data);
         },
-        ...options,
+        onSuccess: async (updatedTournament: Tournament, variables: { id: string; data: UpdateTournamentData }, context?: any) => {
+
+            try {
+                queryClient.setQueryData(tournamentKeys.detail(variables.id), updatedTournament);
+                
+                await queryClient.invalidateQueries({
+                    queryKey: tournamentKeys.all
+                });
+
+                await queryClient.refetchQueries({
+                    queryKey: tournamentKeys.lists(),
+                    type: 'active'
+                });
+
+                if (options?.onSuccess) {
+                    options.onSuccess(updatedTournament, variables, context);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error in UPDATE onSuccess:', error);
+            }
+        },
+        onError: (error: Error, variables: { id: string; data: UpdateTournamentData }, context?: any) => {
+            console.error('❌ UPDATE ERROR:', error);
+            if (options?.onError) {
+                options.onError(error, variables, context);
+            }
+        },
+        mutationKey: options?.mutationKey,
+        meta: options?.meta,
+        networkMode: options?.networkMode,
+        retry: options?.retry,
+        retryDelay: options?.retryDelay,
     });
 };
 
-// Delete tournament mutation
 export const useDeleteTournament = (
     options?: UseMutationOptions<void, Error, string>
 ) => {
@@ -88,14 +144,19 @@ export const useDeleteTournament = (
     return useMutation({
         mutationFn: tournamentsApi.deleteTournament,
         onSuccess: (_, deletedId) => {
-            queryClient.removeQueries({ queryKey: tournamentKeys.detail(deletedId) });
-            queryClient.invalidateQueries({ queryKey: tournamentKeys.lists() });
+            queryClient.removeQueries({
+                queryKey: tournamentKeys.detail(deletedId) 
+            });
+            
+            queryClient.invalidateQueries({
+                queryKey: tournamentKeys.lists(),
+                exact: false 
+            });
         },
         ...options,
     });
 };
 
-// Add player to tournament mutation
 export const useAddPlayerToTournament = (
     options?: UseMutationOptions<Tournament, Error, { tournamentId: string; playerId: string }>
 ) => {
@@ -106,13 +167,15 @@ export const useAddPlayerToTournament = (
             tournamentsApi.addPlayerToTournament(tournamentId, playerId),
         onSuccess: (data, variables) => {
             queryClient.setQueryData(tournamentKeys.detail(variables.tournamentId), data);
-            queryClient.invalidateQueries({ queryKey: tournamentKeys.lists() });
+            queryClient.invalidateQueries({ 
+                queryKey: tournamentKeys.lists(),
+                exact: false 
+            });
         },
         ...options,
     });
 };
 
-// Remove player from tournament mutation
 export const useRemovePlayerFromTournament = (
     options?: UseMutationOptions<Tournament, Error, { tournamentId: string; playerId: string }>
 ) => {
@@ -123,7 +186,10 @@ export const useRemovePlayerFromTournament = (
             tournamentsApi.removePlayerFromTournament(tournamentId, playerId),
         onSuccess: (data, variables) => {
             queryClient.setQueryData(tournamentKeys.detail(variables.tournamentId), data);
-            queryClient.invalidateQueries({ queryKey: tournamentKeys.lists() });
+            queryClient.invalidateQueries({ 
+                queryKey: tournamentKeys.lists(),
+                exact: false 
+            });
         },
         ...options,
     });
