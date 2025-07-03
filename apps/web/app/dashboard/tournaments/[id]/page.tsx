@@ -478,7 +478,7 @@ export default function TournamentDetailsPage() {
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onSuccess={() => {
-                    // Redirect to tournaments list after deletion
+                    // Redirect to a tournament list after deletion
                     window.location.href = '/dashboard/tournaments';
                 }}
                 tournament={tournament}
