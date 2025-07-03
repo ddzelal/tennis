@@ -1,9 +1,9 @@
-import { api } from './request';
-import {ENDPOINT, PaginatedResponse, Stage, StageQueryParams} from '@repo/lib';
+import {api} from './request';
+import {ENDPOINT, PaginatedResponse, Stage, StageDetails, StageQueryParams} from '@repo/lib';
 
 export const stagesApi = {
     // Get all stages with filtering
-    getStages: async (params: StageQueryParams = {}): Promise<PaginatedResponse<Stage>> => {
+    getStages: async (params: StageQueryParams = {}): Promise<PaginatedResponse<StageDetails>> => {
         const searchParams = new URLSearchParams();
 
         if (params.page) searchParams.append('page', params.page.toString());
@@ -13,12 +13,12 @@ export const stagesApi = {
         const query = searchParams.toString();
         const endpoint = query ? `${ENDPOINT.STAGES}?${query}` : ENDPOINT.STAGES;
 
-        return api.get<PaginatedResponse<Stage>>(endpoint);
+        return api.get<PaginatedResponse<StageDetails>>(endpoint);
     },
 
     // Get stage by ID
-    getStage: async (id: string): Promise<Stage> => {
-        return api.get<Stage>(ENDPOINT.STAGE(id));
+    getStage: async (id: string): Promise<StageDetails> => {
+        return await api.getSingle<StageDetails>(ENDPOINT.STAGE(id));
     },
 
     // Create a new stage
@@ -57,7 +57,12 @@ export const stagesApi = {
 
     // Add player to stage
     addPlayerToStage: async (stageId: string, playerId: string): Promise<Stage> => {
-        return api.put<Stage>(`${ENDPOINT.STAGE(stageId)}/players`, { playerId });
+        return api.post<Stage>(`${ENDPOINT.STAGE(stageId)}/players`, { playerId });
+    },
+
+    // Remove player from the stage
+    removePlayerFromStage: async (stageId: string, playerId: string): Promise<Stage> => {
+        return api.delete<Stage>(`${ENDPOINT.STAGE(stageId)}/players/${playerId}`);
     },
 
     // Generate matches for stage

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -13,17 +14,23 @@ import {
     UserPlus,
     Target,
     Activity,
-    Star, Trash2
+    Star,
+    Trash2,
+    UserMinus,
+    PlayCircle,
+    MoreVertical
 } from 'lucide-react';
 import Link from 'next/link';
-import {useGetTournament, useRemovePlayerFromTournament} from '@/lib/queries/tournaments';
+import { useGetTournament, useRemovePlayerFromTournament } from '@/lib/queries/tournaments';
+import { useGetStagesByTournament } from '@/lib/queries/stages';
 import { useGetPlayers } from '@/lib/queries/players';
 import { EditTournamentModal } from '@/components/EditTournamentModal';
 import { DeleteTournamentModal } from '@/components/DeleteTournamentModal';
 import { AddPlayerToTournamentModal } from '@/components/AddPlayerToTournamentModal';
-import { MatchTable } from '@/components/MatchTable';
-import { CreateMatchModal } from '@/components/CreateMatchModal';
-import { Match } from '@repo/lib';
+import { CreateStageModal } from '@/components/CreateStageModal';
+import { EditStageModal } from '@/components/EditStageModal';
+import { DeleteStageModal } from '@/components/DeleteStageModal';
+import { Stage, StageType } from '@repo/lib';
 
 export default function TournamentDetailsPage() {
     const params = useParams();
@@ -33,14 +40,21 @@ export default function TournamentDetailsPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState(false);
-    const [isCreateMatchModalOpen, setIsCreateMatchModalOpen] = useState(false);
-    const [selectedMatchForResult, setSelectedMatchForResult] = useState<Match | null>(null);
+    const [isCreateStageModalOpen, setIsCreateStageModalOpen] = useState(false);
+    const [isEditStageModalOpen, setIsEditStageModalOpen] = useState(false);
+    const [isDeleteStageModalOpen, setIsDeleteStageModalOpen] = useState(false);
+    const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
+    const [openStageDropdown, setOpenStageDropdown] = useState<string | null>(null);
 
     // Active tab state
-    const [activeTab, setActiveTab] = useState<'overview' | 'players' | 'matches'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'players' | 'stages'>('overview');
 
     // Fetch tournament data
     const { data: tournament, isLoading, error, refetch } = useGetTournament(tournamentId);
+
+    // Fetch stages for this tournament
+    const { data: stagesResponse, refetch: refetchStages } = useGetStagesByTournament(tournamentId);
+    const stages = stagesResponse?.data || [];
 
     // Fetch all players to show available ones
     const { data: allPlayersData } = useGetPlayers();
@@ -72,6 +86,19 @@ export default function TournamentDetailsPage() {
 
     const handleModalSuccess = () => {
         refetch();
+        refetchStages();
+    };
+
+    const handleEditStage = (stage: Stage) => {
+        setSelectedStage(stage);
+        setIsEditStageModalOpen(true);
+        setOpenStageDropdown(null);
+    };
+
+    const handleDeleteStage = (stage: Stage) => {
+        setSelectedStage(stage);
+        setIsDeleteStageModalOpen(true);
+        setOpenStageDropdown(null);
     };
 
     // Get players that are NOT already in the tournament
@@ -127,24 +154,104 @@ export default function TournamentDetailsPage() {
         });
     };
 
+    const formatDateTime = (date: string | Date) => {
+        return new Date(date).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
     const getInitials = (name: string) => {
         return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
     };
 
-    const playersCount = tournament.players?.length || 0;
-    const maxPlayersText = tournament.maxPlayers ? `/ ${tournament.maxPlayers}` : '';
+    const getTournamentStatusColor = (status: string) => {
+        switch (status) {
+            case 'DRAFT':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'ACTIVE':
+                return 'bg-green-100 text-green-800';
+            case 'COMPLETED':
+                return 'bg-gray-100 text-gray-800';
+            case 'CANCELLED':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-600';
+        }
+    };
+
+    const getStageTypeColor = (type: StageType) => {
+        switch (type) {
+            case StageType.GROUP:
+                return 'bg-blue-100 text-blue-800';
+            case StageType.ROUND_ROBIN:
+                return 'bg-green-100 text-green-800';
+            case StageType.KNOCKOUT:
+                return 'bg-red-100 text-red-800';
+            case StageType.SEMIFINALS:
+                return 'bg-orange-100 text-orange-800';
+            case StageType.FINALS:
+                return 'bg-indigo-100 text-indigo-800';
+            case StageType.CUSTOM:
+                return 'bg-gray-100 text-gray-800';
+            default:
+                return 'bg-gray-100 text-gray-500';
+        }
+    };
+
+    const getStageTypeLabel = (type: StageType) => {
+        switch (type) {
+            case StageType.GROUP:
+                return 'Group Stage';
+            case StageType.ROUND_ROBIN:
+                return 'Round Robin';
+            case StageType.KNOCKOUT:
+                return 'Knockout';
+            case StageType.SEMIFINALS:
+                return 'Semifinals';
+            case StageType.FINALS:
+                return 'Finals';
+            case StageType.CUSTOM:
+                return 'Custom';
+            default:
+                return type;
+        }
+    };
+
+    const getStageStatusColor = (status: string) => {
+        switch (status) {
+            case 'SCHEDULED':
+                return 'bg-blue-100 text-blue-600';
+            case 'ACTIVE':
+                return 'bg-green-100 text-green-600';
+            case 'COMPLETED':
+                return 'bg-gray-100 text-gray-600';
+            case 'CANCELLED':
+                return 'bg-red-100 text-red-600';
+            default:
+                return 'bg-gray-100 text-gray-600';
+        }
+    };
+
+    const playersCount = tournament.players.length || 0;
+    const stagesCount = stages.length;
 
     // Calculate stats for the cards
     const stats = {
         totalPlayers: playersCount,
-        availablePlayers: availablePlayers.length,
-        matches: 0, // TODO: Get from matches API
-        settings: tournament.settings ? 'Configured' : 'Not Set'
+        maxPlayers: tournament.maxPlayers,
+        stages: stagesCount,
+        currentStage: tournament.currentStage
     };
+
+    const sortedStages = [...stages].sort((a, b) => a.order - b.order);
 
     return (
         <div className="p-4 lg:p-8 space-y-6 min-h-screen bg-gray-50">
-            {/* Header - same style as Players page */}
+            {/* Header - same style as existing */}
             <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl p-6 text-white">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center gap-4">
@@ -164,27 +271,31 @@ export default function TournamentDetailsPage() {
                     <div className="flex flex-col sm:flex-row gap-3 mt-4 lg:mt-0">
                         <button
                             onClick={() => setIsAddPlayerModalOpen(true)}
-                            disabled={availablePlayers.length === 0}
+                            disabled={availablePlayers.length === 0 || playersCount >= (tournament?.maxPlayers || 0)}
                             className="bg-white text-green-700 px-4 py-2 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={availablePlayers.length === 0 ? 'No available players to add' : 'Add player to tournament'}
+                            title={
+                                playersCount >= (tournament?.maxPlayers || 0)
+                                    ? 'Tournament is full' 
+                                    : availablePlayers.length === 0 
+                                    ? 'No available players to add' 
+                                    : 'Add player to tournament'
+                            }
                         >
                             <UserPlus size={16} />
                             <span>Add Player</span>
                         </button>
                         <button
-                            onClick={() => setIsCreateMatchModalOpen(true)}
-                            disabled={playersCount < 2}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={playersCount < 2 ? 'Need at least 2 players to create matches' : 'Create new match'}
+                            onClick={() => setIsCreateStageModalOpen(true)}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                         >
                             <Plus size={16} />
-                            <span>Create Match</span>
+                            <span>Create Stage</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Stats Cards - same style as Players page */}
+            {/* Stats Cards - same style as existing */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-3">
@@ -196,33 +307,33 @@ export default function TournamentDetailsPage() {
                         </span>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900">{stats.totalPlayers}</h3>
-                    <p className="text-sm text-gray-600">Total Players</p>
+                    <p className="text-sm text-gray-600">of {stats.maxPlayers} max</p>
                 </div>
 
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-3">
                         <div className="p-2 rounded-lg bg-green-500 text-white">
-                            <UserPlus size={20} />
+                            <Target size={20} />
                         </div>
                         <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
-                            Available
+                            Stages
                         </span>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900">{stats.availablePlayers}</h3>
-                    <p className="text-sm text-gray-600">Can Add</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{stats.stages}</h3>
+                    <p className="text-sm text-gray-600">Created</p>
                 </div>
 
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-3">
                         <div className="p-2 rounded-lg bg-yellow-500 text-white">
-                            <Trophy size={20} />
+                            <Activity size={20} />
                         </div>
                         <span className="text-xs font-medium px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">
-                            Type
+                            Current
                         </span>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900">{tournament.type}</h3>
-                    <p className="text-sm text-gray-600">Tournament</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{stats.currentStage}</h3>
+                    <p className="text-sm text-gray-600">Stage</p>
                 </div>
 
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -230,16 +341,18 @@ export default function TournamentDetailsPage() {
                         <div className="p-2 rounded-lg bg-purple-500 text-white">
                             <Settings size={20} />
                         </div>
-                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-100 text-purple-700">
-                            Config
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${getTournamentStatusColor(tournament.status)}`}>
+                            {tournament.status}
                         </span>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900">{tournament.settings ? '✓' : '✗'}</h3>
-                    <p className="text-sm text-gray-600">{stats.settings}</p>
+                    <h3 className="text-2xl font-bold text-gray-900">
+                        {tournament.status ? 'Active' : tournament.status ? 'Done' : 'Pending'}
+                    </h3>
+                    <p className="text-sm text-gray-600">Status</p>
                 </div>
             </div>
 
-            {/* Navigation Tabs - same style as Players page */}
+            {/* Navigation Tabs - same style as existing */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
                 <div className="border-b border-gray-200">
                     <nav className="-mb-px flex space-x-8">
@@ -270,16 +383,16 @@ export default function TournamentDetailsPage() {
                             </div>
                         </button>
                         <button
-                            onClick={() => setActiveTab('matches')}
+                            onClick={() => setActiveTab('stages')}
                             className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                                activeTab === 'matches'
+                                activeTab === 'stages'
                                     ? 'border-green-500 text-green-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
                         >
                             <div className="flex items-center gap-2">
-                                <Trophy size={16} />
-                                Matches
+                                <Target size={16} />
+                                Stages ({stagesCount})
                             </div>
                         </button>
                     </nav>
@@ -410,7 +523,7 @@ export default function TournamentDetailsPage() {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {tournament.players?.map((player, index) => {
+                                {tournament.players?.map((player) => {
                                     const playerData = typeof player === 'object' ? player : null;
                                     if (!playerData) return null;
 
@@ -436,7 +549,7 @@ export default function TournamentDetailsPage() {
                                                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                                     title="Remove player from tournament"
                                                 >
-                                                    <Trash2 size={16} />
+                                                    <UserMinus size={16} />
                                                 </button>
                                             </div>
                                         </div>
@@ -447,22 +560,116 @@ export default function TournamentDetailsPage() {
                     </div>
                 )}
 
-                {/* Matches Tab */}
-                {activeTab === 'matches' && (
-                    <MatchTable
-                        tournament={tournament}
-                        tournamentId={tournamentId}
-                        onCreateMatch={() => setIsCreateMatchModalOpen(true)}
-                        onEditMatch={(match) => {
-                            // TODO: Implement edit match modal
-                            console.log('Edit match:', match);
-                        }}
-                        onRecordResult={(match) => {
-                            setSelectedMatchForResult(match);
-                            // TODO: Implement record result modal
-                            console.log('Record result for match:', match);
-                        }}
-                    />
+                {/* Stages Tab */}
+                {activeTab === 'stages' && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                <Target size={18} />
+                                Tournament Stages ({stagesCount})
+                            </h3>
+                            <button
+                                onClick={() => setIsCreateStageModalOpen(true)}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                            >
+                                <Plus size={16} />
+                                Create Stage
+                            </button>
+                        </div>
+
+                        {stagesCount === 0 ? (
+                            <div className="text-center py-12">
+                                <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <h4 className="text-lg font-semibold text-gray-900 mb-2">No Stages Created</h4>
+                                <p className="text-gray-600 mb-4">Create stages to organize your tournament</p>
+                                <button
+                                    onClick={() => setIsCreateStageModalOpen(true)}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Create First Stage
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {sortedStages.map((stage) => {
+                                    const playersInStage = stage.players.length || 0;
+
+                                    return (
+                                        <div key={stage._id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-4">
+                                                    <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-bold">
+                                                        #{stage.order}
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center space-x-3 mb-1">
+                                                            <h4 className="font-semibold text-gray-900">{stage.name}</h4>
+                                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStageTypeColor(stage.type)}`}>
+                                                                {getStageTypeLabel(stage.type)}
+                                                            </span>
+                                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStageStatusColor(stage.status)}`}>
+                                                                {stage.status}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                                            <span className="flex items-center space-x-1">
+                                                                <Users size={14} />
+                                                                <span>{playersInStage} players</span>
+                                                            </span>
+                                                            {stage.startDate && (
+                                                                <span className="flex items-center space-x-1">
+                                                                    <Calendar size={14} />
+                                                                    <span>{formatDate(stage.startDate)}</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center space-x-2">
+                                                    <Link
+                                                        href={`/dashboard/stages/${stage._id}`}
+                                                        className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
+                                                    >
+                                                        <PlayCircle size={14} />
+                                                        Manage
+                                                    </Link>
+
+                                                    <div className="relative">
+                                                        <button
+                                                            onClick={() => setOpenStageDropdown(openStageDropdown === stage._id ? null : stage._id)}
+                                                            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                                                        >
+                                                            <MoreVertical size={16} className="text-gray-500" />
+                                                        </button>
+
+                                                        {openStageDropdown === stage._id && (
+                                                            <div className="absolute right-0 top-10 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                                                                <button
+                                                                    onClick={() => handleEditStage(stage)}
+                                                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                                                                >
+                                                                    <Edit size={14} />
+                                                                    <span>Edit Stage</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteStage(stage)}
+                                                                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                    <span>Delete Stage</span>
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
 
@@ -492,15 +699,36 @@ export default function TournamentDetailsPage() {
                 availablePlayers={availablePlayers}
             />
 
-            <CreateMatchModal
-                isOpen={isCreateMatchModalOpen}
-                onClose={() => setIsCreateMatchModalOpen(false)}
-                onSuccess={() => {
-                    setIsCreateMatchModalOpen(false);
-                    handleModalSuccess();
-                }}
-                tournament={tournament}
+            <CreateStageModal
+                isOpen={isCreateStageModalOpen}
+                onClose={() => setIsCreateStageModalOpen(false)}
+                onSuccess={handleModalSuccess}
+                defaultTournamentId={tournamentId}
             />
+
+            {selectedStage && (
+                <>
+                    <EditStageModal
+                        isOpen={isEditStageModalOpen}
+                        onClose={() => {
+                            setIsEditStageModalOpen(false);
+                            setSelectedStage(null);
+                        }}
+                        stage={selectedStage}
+                        onSuccess={handleModalSuccess}
+                    />
+
+                    <DeleteStageModal
+                        isOpen={isDeleteStageModalOpen}
+                        onClose={() => {
+                            setIsDeleteStageModalOpen(false);
+                            setSelectedStage(null);
+                        }}
+                        stage={selectedStage}
+                        onSuccess={handleModalSuccess}
+                    />
+                </>
+            )}
         </div>
     );
 }

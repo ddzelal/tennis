@@ -7,7 +7,7 @@ import {
     UseMutationOptions
 } from '@tanstack/react-query';
 import { stagesApi } from '../api';
-import {PaginatedResponse, Stage, StageQueryParams} from "@repo/lib";
+import {PaginatedResponse, Stage, StageDetails, StageQueryParams} from "@repo/lib";
 
 
 // Query keys
@@ -35,7 +35,7 @@ export const useGetStages = (
 // Get single stage
 export const useGetStage = (
     id: string,
-    options?: UseQueryOptions<Stage>
+    options?: UseQueryOptions<StageDetails>
 ) => {
     return useQuery({
         queryKey: stageKeys.detail(id),
@@ -49,7 +49,7 @@ export const useGetStage = (
 export const useGetStagesByTournament = (
     tournamentId: string,
     additionalParams: Omit<StageQueryParams, 'tournamentId'> = {},
-    options?: UseQueryOptions<PaginatedResponse<Stage>>
+    options?: UseQueryOptions<PaginatedResponse<StageDetails>>
 ) => {
     const params = { ...additionalParams, tournamentId };
 
@@ -161,6 +161,32 @@ export const useAddPlayerToStage = (
 
     return useMutation({
         mutationFn: ({ stageId, playerId }) => stagesApi.addPlayerToStage(stageId, playerId),
+        onSuccess: (updatedStage, variables) => {
+            // Update the specific stage in cache
+            queryClient.setQueryData(stageKeys.detail(variables.stageId), updatedStage);
+
+            // Invalidate lists to refresh
+            queryClient.invalidateQueries({ queryKey: stageKeys.lists() });
+
+            // Invalidate tournament-specific stages
+            if (typeof updatedStage.tournament === 'string') {
+                queryClient.invalidateQueries({
+                    queryKey: stageKeys.byTournament(updatedStage.tournament)
+                });
+            }
+        },
+        ...options,
+    });
+};
+
+// Remove player from stage mutation
+export const useRemovePlayerFromStage = (
+    options?: UseMutationOptions<Stage, Error, { stageId: string; playerId: string }>
+) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ stageId, playerId }) => stagesApi.removePlayerFromStage(stageId, playerId),
         onSuccess: (updatedStage, variables) => {
             // Update the specific stage in cache
             queryClient.setQueryData(stageKeys.detail(variables.stageId), updatedStage);

@@ -21,6 +21,9 @@ router.delete('/:id', StageController.deleteStage);
 // POST /api/stages/:id/players - Add player to stage
 router.post('/:id/players', StageController.addPlayerToStage);
 
+// DELETE /api/stages/:id/players/:playerId - Remove player from stage
+router.delete('/:id/players/:playerId', StageController.removePlayerFromStage);
+
 // POST /api/stages/:id/generate-matches - Generate matches for a stage
 router.post('/:id/generate-matches', StageController.generateMatches);
 

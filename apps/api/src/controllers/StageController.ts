@@ -43,7 +43,7 @@ export const StageController = {
     try {
       const stage = await Stage.findById(req.params.id)
         .populate('tournament', 'name')
-        .populate('players', 'name email ranking');
+        .populate('players', 'name firstName lastName ranking dateOfBirth');
       
       if (!stage) {
         ResponseHelper.notFound(res, 'Stage');
@@ -119,6 +119,9 @@ export const StageController = {
       });
       
       await stage.save();
+      await Tournament.findByIdAndUpdate(tournament, {
+        $addToSet: { stages: stage._id }
+      }, { new: true });
       
       ResponseHelper.created(res, stage, 'Stage created successfully');
     } catch (error) {
@@ -215,6 +218,10 @@ export const StageController = {
       
       // Delete all matches associated with the stage
       await Match.deleteMany({ stage: req.params.id });
+        // Remove stage reference from tournament
+        await Tournament.findByIdAndUpdate(stage.tournament, {
+            $pull: { stages: stage._id }
+        }, { new: true });
       
       ResponseHelper.success(res, null, 'Stage and related matches deleted successfully');
     } catch (error) {
@@ -266,6 +273,40 @@ export const StageController = {
       ResponseHelper.internalError(res, 'Error adding player to stage');
     }
   }) as RequestHandler,
+
+    // Remove player from the stage
+  removePlayerFromStage: (async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { playerId } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(playerId as string)) {
+        ResponseHelper.badRequest(res, 'Invalid player ID format');
+        return;
+      }
+
+      const stage = await Stage.findById(req.params.id);
+
+      if (!stage) {
+        ResponseHelper.notFound(res, 'Stage');
+        return;
+      }
+
+      // Check if the player is in the stage
+      if (!stage.players.includes(playerId)) {
+        ResponseHelper.badRequest(res, 'Player is not in this stage');
+        return;
+      }
+
+      // Remove player from stage
+      stage.players = stage.players.filter(p => p.toString() !== playerId);
+      await stage.save();
+
+      ResponseHelper.success(res, stage, 'Player removed from stage successfully');
+    } catch (error) {
+      console.error('Error removing player from stage:', error);
+      ResponseHelper.internalError(res, 'Error removing player from stage');
+    }
+    }) as RequestHandler,
 
   // Generate matches for a stage
   generateMatches: (async (req: Request, res: Response): Promise<void> => {

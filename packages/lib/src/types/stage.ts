@@ -41,6 +41,27 @@ export interface Stage {
     updatedAt: string;
 }
 
+export interface StageDetails {
+    _id: string;
+    tournament: Tournament; // Always populated in details
+    name: string;
+    type: StageType;
+    status: StageStatus;
+    order: number;
+    startDate?: string;
+    endDate?: string;
+    players: Player[]; // Always populated in details
+    advancingPlayers?: number;
+    rules?: StageRules;
+    createdAt: string;
+    updatedAt: string;
+    __v: number; // MongoDB version field
+    playerCount: number;
+    isCompleted: boolean;
+    id: string; // MongoDB virtual field
+}
+
+
 export interface CreateStageData {
     tournament: string;
     name: string;

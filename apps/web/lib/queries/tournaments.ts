@@ -36,7 +36,7 @@ export const useGetTournaments = (
     });
 };
 
-// Get single tournament
+// Get a single tournament
 export const useGetTournament = (
     id: string,
     options?: UseQueryOptions<Tournament>

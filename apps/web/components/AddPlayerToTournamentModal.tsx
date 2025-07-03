@@ -61,11 +61,9 @@ export const AddPlayerToTournamentModal: React.FC<AddPlayerToTournamentModalProp
         );
     };
 
-    // POPRAVI - DODAJ VALIDACIJU ZA TOURNAMENT ID!
     const handleAddPlayers = async () => {
         if (selectedPlayers.length === 0) return;
 
-        // PROVERI DA LI POSTOJI TOURNAMENT ID
         if (!tournament || !tournament._id) {
             console.error('❌ Tournament ID is missing!', tournament);
             return;
@@ -91,7 +89,7 @@ export const AddPlayerToTournamentModal: React.FC<AddPlayerToTournamentModalProp
         }
     };
 
-    const canAddMorePlayers = tournament.maxPlayers
+    const canAddMorePlayers = tournament?.maxPlayers
         ? (tournament.players?.length || 0) + selectedPlayers.length < tournament.maxPlayers
         : true;
 
