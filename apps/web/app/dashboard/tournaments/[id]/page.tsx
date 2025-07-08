@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { useGetTournament, useRemovePlayerFromTournament } from '@/lib/queries/tournaments';
 import { useGetStagesByTournament } from '@/lib/queries/stages';
 import { useGetPlayers } from '@/lib/queries/players';
+import { useGetMatchesByTournament } from '@/lib/queries/matches';
 import { EditTournamentModal } from '@/components/EditTournamentModal';
 import { DeleteTournamentModal } from '@/components/DeleteTournamentModal';
 import { AddPlayerToTournamentModal } from '@/components/AddPlayerToTournamentModal';
@@ -46,8 +47,7 @@ export default function TournamentDetailsPage() {
     const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
     const [openStageDropdown, setOpenStageDropdown] = useState<string | null>(null);
 
-    // Active tab state
-    const [activeTab, setActiveTab] = useState<'overview' | 'players' | 'stages'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'players' | 'stages' | 'matches'>('overview');
 
     // Fetch tournament data
     const { data: tournament, isLoading, error, refetch } = useGetTournament(tournamentId);
@@ -60,6 +60,12 @@ export default function TournamentDetailsPage() {
     const { data: allPlayersData } = useGetPlayers();
     const allPlayers = allPlayersData?.data || [];
 
+    // Fetch matches for this tournament
+    const { data: matchesResponse, isLoading: isMatchesLoading } = useGetMatchesByTournament(tournamentId,{
+        limit:999
+    });
+    const matches = matchesResponse?.data || [];
+
     const removePlayerMutation = useRemovePlayerFromTournament({
         onSuccess: () => {
             refetch(); // Refresh tournament data
@@ -69,7 +75,6 @@ export default function TournamentDetailsPage() {
             alert('Failed to remove player from tournament');
         }
     });
-
 
     const handleRemovePlayer = async (playerId: string) => {
         if (confirm('Are you sure you want to remove this player from the tournament?')) {
@@ -251,7 +256,7 @@ export default function TournamentDetailsPage() {
 
     return (
         <div className="p-4 lg:p-8 space-y-6 min-h-screen bg-gray-50">
-            {/* Header - same style as existing */}
+            {/* Header */}
             <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl p-6 text-white">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center gap-4">
@@ -275,10 +280,10 @@ export default function TournamentDetailsPage() {
                             className="bg-white text-green-700 px-4 py-2 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             title={
                                 playersCount >= (tournament?.maxPlayers || 0)
-                                    ? 'Tournament is full' 
-                                    : availablePlayers.length === 0 
-                                    ? 'No available players to add' 
-                                    : 'Add player to tournament'
+                                    ? 'Tournament is full'
+                                    : availablePlayers.length === 0
+                                        ? 'No available players to add'
+                                        : 'Add player to tournament'
                             }
                         >
                             <UserPlus size={16} />
@@ -295,7 +300,7 @@ export default function TournamentDetailsPage() {
                 </div>
             </div>
 
-            {/* Stats Cards - same style as existing */}
+            {/* Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-3">
@@ -352,7 +357,7 @@ export default function TournamentDetailsPage() {
                 </div>
             </div>
 
-            {/* Navigation Tabs - same style as existing */}
+            {/* Navigation Tabs - dodato Matches tab */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
                 <div className="border-b border-gray-200">
                     <nav className="-mb-px flex space-x-8">
@@ -393,6 +398,19 @@ export default function TournamentDetailsPage() {
                             <div className="flex items-center gap-2">
                                 <Target size={16} />
                                 Stages ({stagesCount})
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('matches')}
+                            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                activeTab === 'matches'
+                                    ? 'border-green-500 text-green-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <PlayCircle size={16} />
+                                Matches ({matches.length})
                             </div>
                         </button>
                     </nav>
@@ -671,6 +689,144 @@ export default function TournamentDetailsPage() {
                         )}
                     </div>
                 )}
+
+                {/* Matches Tab - NOVA SEKCIJA */}
+                {activeTab === 'matches' && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                <PlayCircle size={18} />
+                                Tournament Matches ({matches.length})
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600">
+                                    {matches.filter(m => m.status === 'COMPLETED').length} completed
+                                </span>
+                            </div>
+                        </div>
+
+                        {isMatchesLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                            </div>
+                        ) : matches.length === 0 ? (
+                            <div className="text-center py-12">
+                                <PlayCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <h4 className="text-lg font-semibold text-gray-900 mb-2">No Matches Found</h4>
+                                <p className="text-gray-600 mb-4">
+                                    Matches will appear here once they are created for this tournament
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                    Create stages and add players to start organizing matches
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {matches.map((match) => {
+                                    const player1 = typeof match.player1 === 'string' ? null : match.player1;
+                                    const player2 = typeof match.player2 === 'string' ? null : match.player2;
+                                    const winner = typeof match.winner === 'string' ? null : match.winner;
+                                    const stage = typeof match.stage === 'string' ? null : match.stage;
+
+                                    return (
+                                        <div
+                                            key={match._id}
+                                            className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-green-300 transition-colors"
+                                        >
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                                        match.status === 'COMPLETED'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : match.status === 'IN_PROGRESS'
+                                                                ? 'bg-blue-100 text-blue-800'
+                                                                : match.status === 'SCHEDULED'
+                                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                                    : 'bg-gray-100 text-gray-800'
+                                                    }`}>
+                                                        {match.status.replace('_', ' ')}
+                                                    </span>
+                                                    {stage && (
+                                                        <span className="text-sm text-gray-600">
+                                                            {stage.name}
+                                                        </span>
+                                                    )}
+                                                    {match.round && (
+                                                        <span className="text-sm text-gray-600">
+                                                            Round {match.round}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {match.scheduledDate && (
+                                                    <span className="text-sm text-gray-500">
+                                                        {formatDateTime(match.scheduledDate)}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    {/* Player 1 */}
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-medium">
+                                                            {player1 ? getInitials(`${player1.firstName} ${player1.lastName}`) : 'P1'}
+                                                        </div>
+                                                        <span className={`font-medium ${
+                                                            winner && winner._id === (player1?._id || match.player1)
+                                                                ? 'text-green-600'
+                                                                : 'text-gray-900'
+                                                        }`}>
+                                                            {player1 ? `${player1.firstName} ${player1.lastName}` : 'Player 1'}
+                                                        </span>
+                                                        {winner && winner._id === (player1?._id || match.player1) && (
+                                                            <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                                                        )}
+                                                    </div>
+
+                                                    <span className="text-gray-400 font-medium">vs</span>
+
+                                                    {/* Player 2 */}
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-sm font-medium">
+                                                            {player2 ? getInitials(`${player2.firstName} ${player2.lastName}`) : 'P2'}
+                                                        </div>
+                                                        <span className={`font-medium ${
+                                                            winner && winner._id === (player2?._id || match.player2)
+                                                                ? 'text-green-600'
+                                                                : 'text-gray-900'
+                                                        }`}>
+                                                            {player2 ? `${player2.firstName} ${player2.lastName}` : 'Player 2'}
+                                                        </span>
+                                                        {winner && winner._id === (player2?._id || match.player2) && (
+                                                            <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Match Sets/Score */}
+                                                {match.sets && match.sets.length > 0 && (
+                                                    <div className="flex items-center gap-2">
+                                                        {match.sets.map((set, index) => (
+                                                            <div key={index} className="text-sm font-mono bg-white px-2 py-1 rounded border">
+                                                                {set.player1Score}-{set.player2Score}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {match.notes && (
+                                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                                    <p className="text-sm text-gray-600">{match.notes}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Modals */}
@@ -685,7 +841,6 @@ export default function TournamentDetailsPage() {
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onSuccess={() => {
-                    // Redirect to a tournament list after deletion
                     window.location.href = '/dashboard/tournaments';
                 }}
                 tournament={tournament}

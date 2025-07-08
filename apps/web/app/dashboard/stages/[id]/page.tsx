@@ -44,6 +44,7 @@ export default function StageDetailsPage() {
     // Fetch stage data
     const { data: stage, isLoading, error, refetch } = useGetStage(stageId);
 
+
     // Fetch matches for this stage
     const { data: matchesData } = useGetMatchesByStage(stageId,{
         limit:999
@@ -624,6 +625,7 @@ export default function StageDetailsPage() {
                             </div>
                         ) : (
                             <StageMatchTable
+                                tournament={stage?.tournament}
                                 matches={matches}
                                 showTournament={false}
                                 showStage={false}

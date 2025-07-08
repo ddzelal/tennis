@@ -16,7 +16,7 @@ import {
     Target,
     AlertCircle
 } from 'lucide-react';
-import { Match, MatchStatus } from '@repo/lib';
+import {Match, MatchStatus, Tournament} from '@repo/lib';
 import { useDeleteMatch } from '@/lib/queries/matches';
 import { RecordMatchResultModal } from './RecordMatchResultModal';
 import { EditMatchModal } from './EditMatchModal';
@@ -27,6 +27,7 @@ interface StageMatchTableProps {
     onRefresh?: () => void;
     showTournament?: boolean;
     showStage?: boolean;
+    tournament?:Tournament;
 }
 
 export const StageMatchTable: React.FC<StageMatchTableProps> = ({
@@ -34,7 +35,8 @@ export const StageMatchTable: React.FC<StageMatchTableProps> = ({
                                                                     isLoading = false,
                                                                     onRefresh,
                                                                     showTournament = false,
-                                                                    showStage = false
+                                                                    showStage = false,
+                                                                    tournament
                                                                 }) => {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [selectedMatchForResult, setSelectedMatchForResult] = useState<Match | null>(null);
@@ -401,8 +403,9 @@ export const StageMatchTable: React.FC<StageMatchTableProps> = ({
                 />
             )}
 
-            {selectedMatchForEdit && (
+            {selectedMatchForEdit && tournament && (
                 <EditMatchModal
+                    tournament={tournament}
                     isOpen={!!selectedMatchForEdit}
                     onClose={() => setSelectedMatchForEdit(null)}
                     match={selectedMatchForEdit}
