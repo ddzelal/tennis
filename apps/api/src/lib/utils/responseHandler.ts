@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { StandardResponse, PaginatedResponse, PaginationData, ErrorResponse, ValidationError } from '../../types/response';
+import { StandardResponse, PaginatedResponse, PaginationData, ErrorResponse, ValidationError } from '@repo/lib';
 
 export class ResponseHelper {
   
@@ -46,7 +46,8 @@ export class ResponseHelper {
       success: false,
       error,
       validationErrors,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      message: error
     };
     
     res.status(statusCode).json(response);

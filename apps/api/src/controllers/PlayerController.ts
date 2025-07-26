@@ -1,7 +1,7 @@
 import { Request, Response, RequestHandler } from 'express';
 import { Player } from '../models';
 import { ResponseHelper, PaginationHelper } from '../lib/utils/responseHandler';
-import { ValidationError } from '../types/response';
+import { ValidationError } from '@repo/lib';
 import { 
   CreatePlayerData, 
   UpdatePlayerData, 

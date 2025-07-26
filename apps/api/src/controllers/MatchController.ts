@@ -2,7 +2,7 @@
 import { Request, RequestHandler, Response } from 'express';
 import { Match, Tournament, Player } from '../models';
 import { ResponseHelper, PaginationHelper } from '../lib/utils/responseHandler';
-import { ValidationError } from '../types/response';
+import { ValidationError } from '@repo/lib';
 import {MatchStatus} from "@repo/lib";
 
 export const MatchController = {

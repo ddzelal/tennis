@@ -2,7 +2,7 @@ import { Request, Response, RequestHandler } from 'express';
 import { Tournament, Stage, Match } from '../models';
 import mongoose from 'mongoose';
 import { ResponseHelper, PaginationHelper } from '../lib/utils/responseHandler';
-import { ValidationError } from '../types/response';
+import { ValidationError } from '@repo/lib';
 import {GetPlayersByTournamentId} from "@repo/lib";
 
 export const TournamentController = {
