@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query';
 import { tournamentsApi } from '../api';
 import {
-    CreateTournamentData,
+    CreateTournamentData, GetPlayersByTournamentId,
     PaginatedResponse,
     Tournament,
     TournamentQueryParams,
@@ -35,6 +35,20 @@ export const useGetTournaments = (
         ...options,
     });
 };
+
+// Get players in a tournament
+export const useGetPlayersInTournament = (
+    tournamentId: string,
+    options?: UseQueryOptions<GetPlayersByTournamentId>
+) => {
+    return useQuery({
+        queryKey: ['tournaments', tournamentId, 'players'], // Bolji query key
+        queryFn: () => tournamentsApi.getPlayersInTournament(tournamentId),
+        enabled: !!tournamentId,
+        ...options,
+    });
+};
+
 
 // Get a single tournament
 export const useGetTournament = (

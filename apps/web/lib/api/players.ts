@@ -1,14 +1,26 @@
 import { api } from './request';
 
-import {ENDPOINT, CreatePlayerData, PaginatedResponse, Player, PlayerQueryParams, UpdatePlayerData} from '@repo/lib';
+import {
+    ENDPOINT,
+    CreatePlayerData,
+    UpdatePlayerData,
+    PlayerQueryParams,
+    // Import response types
+    GetAllPlayersResponse,
+    GetPlayerByIdResponse,
+    CreatePlayerResponse,
+    UpdatePlayerResponse,
+    DeletePlayerResponse
+} from '@repo/lib';
 
 export const playersApi = {
-    getAllPlayers: async (): Promise<PaginatedResponse<Player>> => {
-        return api.get<PaginatedResponse<Player>>(ENDPOINT.PLAYERS);
+    // Get all players (deprecated - use getPlayers instead)
+    getAllPlayers: async (): Promise<GetAllPlayersResponse> => {
+        return api.get<GetAllPlayersResponse>(ENDPOINT.PLAYERS);
     },
 
     // Get all players with pagination and search
-    getPlayers: async (params: PlayerQueryParams = {}): Promise<PaginatedResponse<Player>> => {
+    getPlayers: async (params: PlayerQueryParams = {}): Promise<GetAllPlayersResponse> => {
         const searchParams = new URLSearchParams();
 
         if (params.page) searchParams.append('page', params.page.toString());
@@ -18,26 +30,26 @@ export const playersApi = {
         const query = searchParams.toString();
         const endpoint = query ? `${ENDPOINT.PLAYERS}?${query}` : ENDPOINT.PLAYERS;
 
-        return api.get<PaginatedResponse<Player>>(endpoint);
+        return api.get<GetAllPlayersResponse>(endpoint);
     },
 
     // Get player by ID
-    getPlayer: async (id: string): Promise<Player> => {
-        return api.get<Player>(ENDPOINT.PLAYER(id));
+    getPlayer: async (id: string): Promise<GetPlayerByIdResponse> => {
+        return api.get<GetPlayerByIdResponse>(ENDPOINT.PLAYER(id));
     },
 
     // Create a new player
-    createPlayer: async (data: CreatePlayerData): Promise<Player> => {
-        return api.post<Player>(ENDPOINT.PLAYERS, data);
+    createPlayer: async (data: CreatePlayerData): Promise<CreatePlayerResponse> => {
+        return api.post<CreatePlayerResponse>(ENDPOINT.PLAYERS, data);
     },
 
     // Update player
-    updatePlayer: async (id: string, data: UpdatePlayerData): Promise<Player> => {
-        return api.put<Player>(ENDPOINT.PLAYER(id), data);
+    updatePlayer: async (id: string, data: UpdatePlayerData): Promise<UpdatePlayerResponse> => {
+        return api.put<UpdatePlayerResponse>(ENDPOINT.PLAYER(id), data);
     },
 
     // Delete player
-    deletePlayer: async (id: string): Promise<void> => {
-        return api.delete<void>(ENDPOINT.PLAYER(id));
+    deletePlayer: async (id: string): Promise<DeletePlayerResponse> => {
+        return api.delete<DeletePlayerResponse>(ENDPOINT.PLAYER(id));
     },
 };

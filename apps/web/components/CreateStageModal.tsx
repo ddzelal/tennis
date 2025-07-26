@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, Users, Target, Trophy } from 'lucide-react';
 import { useCreateStage } from '@/lib/queries/stages';
-import { useGetTournaments } from '@/lib/queries/tournaments';
+import {useGetPlayersInTournament, useGetTournaments} from '@/lib/queries/tournaments';
 import { useGetPlayers } from '@/lib/queries/players';
 import { StageType } from '@repo/lib';
 
@@ -36,7 +36,7 @@ export const CreateStageModal: React.FC<CreateStageModalProps> = ({
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const { data: tournamentsResponse } = useGetTournaments({ limit: 100 });
-    const { data: playersResponse } = useGetPlayers({ limit: 100 });
+    const {data:playersResponse} = useGetPlayersInTournament(defaultTournamentId!);
 
     const tournaments = tournamentsResponse?.data || [];
     const players = playersResponse?.data || [];

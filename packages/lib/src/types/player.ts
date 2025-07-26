@@ -1,3 +1,5 @@
+import {PaginatedResponse, StandardResponse} from "./api";
+
 export interface Player {
     _id: string;
     firstName: string;
@@ -5,7 +7,6 @@ export interface Player {
     dateOfBirth: string;
     ranking?: number;
     fullName?: string;
-    age?: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -41,3 +42,13 @@ export interface IPlayerDocument {
     createdAt: Date;
     updatedAt: Date;
 }
+
+
+// Player Controller Response Types
+export type GetAllPlayersResponse = PaginatedResponse<Player>;
+export type GetPlayerByIdResponse = StandardResponse<Player>;
+export type CreatePlayerResponse = StandardResponse<Player>;
+export type UpdatePlayerResponse = StandardResponse<Player>;
+export type DeletePlayerResponse = StandardResponse<null>;
+
+

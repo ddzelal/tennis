@@ -2,11 +2,19 @@ import { Request, Response, RequestHandler } from 'express';
 import { Player } from '../models';
 import { ResponseHelper, PaginationHelper } from '../lib/utils/responseHandler';
 import { ValidationError } from '../types/response';
-import { CreatePlayerData, UpdatePlayerData } from '@repo/lib';
+import { 
+  CreatePlayerData, 
+  UpdatePlayerData, 
+  GetAllPlayersResponse,
+  GetPlayerByIdResponse,
+  CreatePlayerResponse,
+  UpdatePlayerResponse,
+  DeletePlayerResponse
+} from '@repo/lib';
 
 export const PlayerController = {
   // Get all players with optional search and pagination
-  getAllPlayers: (async (req: Request, res: Response) => {
+  getAllPlayers: (async (req: Request, res: Response<GetAllPlayersResponse>) => {
     try {
       // Extract query parameters
       const search = req.query.search as string;
@@ -52,7 +60,7 @@ export const PlayerController = {
   }) as RequestHandler,
 
   // Get player by ID
-  getPlayerById: (async (req: Request, res: Response) => {
+  getPlayerById: (async (req: Request, res: Response<GetPlayerByIdResponse>) => {
     try {
       const player = await Player.findById(req.params.id);
 
@@ -75,7 +83,7 @@ export const PlayerController = {
   }) as RequestHandler,
 
   // Create a new player
-  createPlayer: (async (req: Request, res: Response) => {
+  createPlayer: (async (req: Request, res: Response<CreatePlayerResponse>) => {
     try {
       const { firstName, lastName, dateOfBirth, ranking }: CreatePlayerData = req.body;
       
@@ -135,7 +143,7 @@ export const PlayerController = {
   }) as RequestHandler,
 
   // Update player
-  updatePlayer: (async (req: Request, res: Response) => {
+  updatePlayer: (async (req: Request, res: Response<UpdatePlayerResponse>) => {
     try {
       const { firstName, lastName, dateOfBirth, ranking }: UpdatePlayerData = req.body;
       
@@ -207,7 +215,7 @@ export const PlayerController = {
   }) as RequestHandler,
 
   // Delete player
-  deletePlayer: (async (req: Request, res: Response) => {
+  deletePlayer: (async (req: Request, res: Response<DeletePlayerResponse>) => {
     try {
       const player = await Player.findByIdAndDelete(req.params.id);
       

@@ -1,7 +1,7 @@
 import { api } from './request';
 import {
   CreateTournamentData,
-  ENDPOINT,
+  ENDPOINT, GetPlayersByTournamentId,
   PaginatedResponse,
   Tournament,
   TournamentQueryParams,
@@ -28,6 +28,11 @@ export const tournamentsApi = {
     const result = await api.getSingle<Tournament>(ENDPOINT.TOURNAMENT(id));
     console.log('🎾 API: Tournament result:', result);
     return result;
+  },
+
+
+  getPlayersInTournament: async (tournamentId: string): Promise<GetPlayersByTournamentId> => {
+    return api.get<GetPlayersByTournamentId>(`${ENDPOINT.TOURNAMENT(tournamentId)}/players`);
   },
 
   // Create new tournament

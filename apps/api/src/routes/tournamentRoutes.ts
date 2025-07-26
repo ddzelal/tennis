@@ -9,6 +9,9 @@ router.get('/', TournamentController.getAllTournaments);
 // GET /api/tournaments/:id - Get tournament by ID
 router.get('/:id', TournamentController.getTournamentById);
 
+// GET /api/tournaments/:id/players - Get players in a tournament
+router.get('/:id/players', TournamentController.getPlayersInTournament);
+
 // POST /api/tournaments - Create a new tournament
 router.post('/', TournamentController.createTournament);
 

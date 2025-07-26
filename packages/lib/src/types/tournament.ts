@@ -1,6 +1,7 @@
 // Tournament types from backend
 import {Player} from "./player";
 import {Stage} from "./stage";
+import {PaginatedResponse} from "./api";
 
 export enum TournamentType {
     LEAGUE = 'LEAGUE',
@@ -75,7 +76,6 @@ export interface TournamentQueryParams {
     status?: TournamentStatus;
 }
 
-// Backend interface (extends Document) - isto kao IPlayerDocument
 export interface ITournamentDocument {
     name: string;
     description?: string;
@@ -92,3 +92,5 @@ export interface ITournamentDocument {
     createdAt: Date;
     updatedAt: Date;
 }
+
+export type GetPlayersByTournamentId = PaginatedResponse<Player>;

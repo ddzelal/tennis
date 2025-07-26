@@ -6,8 +6,17 @@ import {
     UseMutationOptions
 } from '@tanstack/react-query';
 import { playersApi } from '../api';
-import {CreatePlayerData, PaginatedResponse, Player, PlayerQueryParams, UpdatePlayerData} from "@repo/lib";
-
+import {
+    CreatePlayerData,
+    UpdatePlayerData,
+    PlayerQueryParams,
+    // Import response types
+    GetAllPlayersResponse,
+    GetPlayerByIdResponse,
+    CreatePlayerResponse,
+    UpdatePlayerResponse,
+    DeletePlayerResponse
+} from "@repo/lib";
 
 // Query keys
 export const playerKeys = {
@@ -21,7 +30,7 @@ export const playerKeys = {
 // Get players with pagination and search
 export const useGetPlayers = (
     params: PlayerQueryParams = {},
-    options?: UseQueryOptions<PaginatedResponse<Player>>
+    options?: UseQueryOptions<GetAllPlayersResponse>
 ) => {
     return useQuery({
         queryKey: playerKeys.list(params),
@@ -33,7 +42,7 @@ export const useGetPlayers = (
 // Get a single player
 export const useGetPlayer = (
     id: string,
-    options?: UseQueryOptions<Player>
+    options?: UseQueryOptions<GetPlayerByIdResponse>
 ) => {
     return useQuery({
         queryKey: playerKeys.detail(id),
@@ -45,7 +54,7 @@ export const useGetPlayer = (
 
 // Create a player mutation
 export const useCreatePlayer = (
-    options?: UseMutationOptions<Player, Error, CreatePlayerData>
+    options?: UseMutationOptions<CreatePlayerResponse, Error, CreatePlayerData>
 ) => {
     const queryClient = useQueryClient();
 
@@ -61,15 +70,15 @@ export const useCreatePlayer = (
 
 // Update player mutation
 export const useUpdatePlayer = (
-    options?: UseMutationOptions<Player, Error, { id: string; data: UpdatePlayerData }>
+    options?: UseMutationOptions<UpdatePlayerResponse, Error, { id: string; data: UpdatePlayerData }>
 ) => {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: ({ id, data }) => playersApi.updatePlayer(id, data),
-        onSuccess: (data, variables) => {
+        onSuccess: (response, variables) => {
             // Update the specific player in cache
-            queryClient.setQueryData(playerKeys.detail(variables.id), data);
+            queryClient.setQueryData(playerKeys.detail(variables.id), response);
             // Invalidate player list to refresh
             queryClient.invalidateQueries({ queryKey: playerKeys.lists() });
         },
@@ -79,7 +88,7 @@ export const useUpdatePlayer = (
 
 // Delete player mutation
 export const useDeletePlayer = (
-    options?: UseMutationOptions<void, Error, string>
+    options?: UseMutationOptions<DeletePlayerResponse, Error, string>
 ) => {
     const queryClient = useQueryClient();
 
