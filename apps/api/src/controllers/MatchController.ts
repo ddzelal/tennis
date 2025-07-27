@@ -32,9 +32,9 @@ export const MatchController = {
 
       const matches = await Match.find(filter)
           .sort({ scheduledDate: 1 })
-          .populate('player1', 'firstName lastName ranking') // ✅ ISPRAVLJEN
-          .populate('player2', 'firstName lastName ranking') // ✅ ISPRAVLJEN
-          .populate('winner', 'firstName lastName')         // ✅ ISPRAVLJEN
+          .populate('player1', 'firstName lastName ranking')
+          .populate('player2', 'firstName lastName ranking')
+          .populate('winner', 'firstName lastName')
           .populate('tournament', 'name')
           .skip(skip)
           .limit(limit);
@@ -57,9 +57,9 @@ export const MatchController = {
   getMatchById: (async (req: Request, res: Response): Promise<void> => {
     try {
       const match = await Match.findById(req.params.id)
-          .populate('player1', 'firstName lastName ranking') // ✅ ISPRAVLJEN
-          .populate('player2', 'firstName lastName ranking') // ✅ ISPRAVLJEN
-          .populate('winner', 'firstName lastName')          // ✅ ISPRAVLJEN
+          .populate('player1', 'firstName lastName ranking')
+          .populate('player2', 'firstName lastName ranking')
+          .populate('winner', 'firstName lastName')
           .populate('tournament', 'name')
           .populate('stage', 'name type');
 
@@ -178,9 +178,9 @@ export const MatchController = {
           updateData,
           { new: true, runValidators: true }
       )
-          .populate('player1', 'firstName lastName ranking') // ✅ ISPRAVLJEN
-          .populate('player2', 'firstName lastName ranking') // ✅ ISPRAVLJEN
-          .populate('winner', 'firstName lastName')          // ✅ ISPRAVLJEN
+          .populate('player1', 'firstName lastName ranking')
+          .populate('player2', 'firstName lastName ranking')
+          .populate('winner', 'firstName lastName')
           .populate('tournament', 'name');
 
       if (!match) {
@@ -259,7 +259,6 @@ export const MatchController = {
 
       await match.save();
 
-      // ✅ POPULATE NAKON UPDATE
       const populatedMatch = await Match.findById(match._id)
           .populate('player1', 'firstName lastName ranking')
           .populate('player2', 'firstName lastName ranking')
