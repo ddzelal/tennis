@@ -11,20 +11,6 @@ export interface Player {
   updatedAt: string;
 }
 
-export interface CreatePlayerData {
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  ranking?: number;
-}
-
-export interface UpdatePlayerData {
-  firstName?: string;
-  lastName?: string;
-  dateOfBirth?: string;
-  ranking?: number;
-}
-
 export interface PlayerQueryParams {
   page?: number;
   limit?: number;

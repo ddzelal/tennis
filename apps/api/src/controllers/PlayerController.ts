@@ -1,8 +1,8 @@
-import {Request, RequestHandler, Response} from "express";
+
+import { Request, Response, RequestHandler } from "express";
 import { Player } from "../models";
 import { ResponseHelper, PaginationHelper } from "../lib/utils/responseHandler";
 import { asyncHandler } from "../lib/utils/asyncHandler";
-import { ValidationError } from "@repo/lib";
 import {
   CreatePlayerData,
   UpdatePlayerData,
@@ -11,20 +11,18 @@ import {
   CreatePlayerResponse,
   UpdatePlayerResponse,
   DeletePlayerResponse,
+  PaginationQuery,
+  MongoIdParams,
 } from "@repo/lib";
 
-export const PlayerController : Record<string, RequestHandler> = {
-  // Get all players with optional search and pagination
-  getAllPlayers: asyncHandler(async (
-    req: Request,
-    res: Response<GetAllPlayersResponse>,
-  ) => {
-    // Extract query parameters
-    const search = req.query.search as string;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+export class PlayerController {
 
-    // Build a search query
+  static getAllPlayers: RequestHandler = asyncHandler(async (
+      req: Request,
+      res: Response<GetAllPlayersResponse>,
+  ) => {
+    const { search, page, limit } = req.query as unknown as PaginationQuery;
+
     let query: any = {};
     if (search && search.trim()) {
       query = {
@@ -35,112 +33,48 @@ export const PlayerController : Record<string, RequestHandler> = {
       };
     }
 
-    // Count total documents
     const total = await Player.countDocuments(query);
-
-    // Get paginated results
     const skip = PaginationHelper.getSkipValue(page, limit);
     const players = await Player.find(query)
-      .sort({ firstName: 1, lastName: 1 })
-      .skip(skip)
-      .limit(limit);
+        .sort({ firstName: 1, lastName: 1 })
+        .skip(skip)
+        .limit(limit);
 
-    // Calculate pagination data
-    const pagination = PaginationHelper.calculatePagination(
-      page,
-      limit,
-      total,
-    );
+    const pagination = PaginationHelper.calculatePagination(page, limit, total);
 
-    // Return paginated response
     return ResponseHelper.paginatedSuccess(
-      res,
-      players,
-      pagination,
-      `Found ${total} player(s)`,
+        res,
+        players,
+        pagination,
+        `Found ${total} player(s)`,
     );
-  }),
+  });
 
-  // Get player by ID
-  getPlayerById: asyncHandler(async (
-    req: Request,
-    res: Response<GetPlayerByIdResponse>,
+  static getPlayerById: RequestHandler = asyncHandler(async (
+      req: Request,
+      res: Response<GetPlayerByIdResponse>,
   ) => {
-    const player = await Player.findById(req.params.id);
+    const { id } = req.params as MongoIdParams;
+
+    const player = await Player.findById(id);
 
     if (!player) {
       return ResponseHelper.notFound(res, "Player");
     }
 
     return ResponseHelper.success(
-      res,
-      player,
-      "Player retrieved successfully",
-    );
-  }),
-
-  // Create a new player
-  createPlayer: asyncHandler(async (req: Request, res: Response<CreatePlayerResponse>) => {
-    const { firstName, lastName, dateOfBirth, ranking }: CreatePlayerData =
-      req.body;
-
-    // Validation
-    const validationErrors: ValidationError[] = [];
-
-    if (!firstName || firstName.trim() === "") {
-      validationErrors.push({
-        field: "firstName",
-        message: "First name is required",
-      });
-    }
-
-    if (!lastName || lastName.trim() === "") {
-      validationErrors.push({
-        field: "lastName",
-        message: "Last name is required",
-      });
-    }
-
-    if (!dateOfBirth) {
-      validationErrors.push({
-        field: "dateOfBirth",
-        message: "Date of birth is required",
-      });
-    } else {
-      // Validate date format and that it's in the past
-      const birthDate = new Date(dateOfBirth);
-      if (isNaN(birthDate.getTime())) {
-        validationErrors.push({
-          field: "dateOfBirth",
-          message: "Invalid date format",
-        });
-      } else if (birthDate >= new Date()) {
-        validationErrors.push({
-          field: "dateOfBirth",
-          message: "Date of birth must be in the past",
-        });
-      }
-    }
-
-    if (
-      ranking !== undefined &&
-      (isNaN(ranking) || ranking < 1 || ranking > 10000)
-    ) {
-      validationErrors.push({
-        field: "ranking",
-        message: "Ranking must be between 1 and 10000",
-      });
-    }
-
-    if (validationErrors.length > 0) {
-      return ResponseHelper.badRequest(
         res,
-        "Validation failed",
-        validationErrors,
-      );
-    }
+        player,
+        "Player retrieved successfully",
+    );
+  });
 
-    // Create new player
+  static createPlayer: RequestHandler = asyncHandler(async (
+      req: Request,
+      res: Response<CreatePlayerResponse>
+  ) => {
+    const { firstName, lastName, dateOfBirth, ranking } = req.body as CreatePlayerData;
+
     const player = new Player({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -151,80 +85,21 @@ export const PlayerController : Record<string, RequestHandler> = {
     await player.save();
 
     return ResponseHelper.created(res, player, "Player created successfully");
-  }),
+  });
 
-  // Update player
-  updatePlayer: asyncHandler(async (req: Request, res: Response<UpdatePlayerResponse>) => {
-    const { firstName, lastName, dateOfBirth, ranking }: UpdatePlayerData =
-      req.body;
+  static updatePlayer: RequestHandler = asyncHandler(async (
+      req: Request,
+      res: Response<UpdatePlayerResponse>
+  ) => {
+    const { id } = req.params as MongoIdParams;
+    const updateData = req.body as UpdatePlayerData;
 
-    // Validation
-    const validationErrors: ValidationError[] = [];
-
-    if (firstName !== undefined && (!firstName || firstName.trim() === "")) {
-      validationErrors.push({
-        field: "firstName",
-        message: "First name cannot be empty",
-      });
+    const finalUpdateData: any = { ...updateData };
+    if (updateData.dateOfBirth) {
+      finalUpdateData.dateOfBirth = new Date(updateData.dateOfBirth);
     }
 
-    if (lastName !== undefined && (!lastName || lastName.trim() === "")) {
-      validationErrors.push({
-        field: "lastName",
-        message: "Last name cannot be empty",
-      });
-    }
-
-    if (dateOfBirth !== undefined) {
-      if (!dateOfBirth) {
-        validationErrors.push({
-          field: "dateOfBirth",
-          message: "Date of birth cannot be empty",
-        });
-      } else {
-        const birthDate = new Date(dateOfBirth);
-        if (isNaN(birthDate.getTime())) {
-          validationErrors.push({
-            field: "dateOfBirth",
-            message: "Invalid date format",
-          });
-        } else if (birthDate >= new Date()) {
-          validationErrors.push({
-            field: "dateOfBirth",
-            message: "Date of birth must be in the past",
-          });
-        }
-      }
-    }
-
-    if (
-      ranking !== undefined &&
-      (isNaN(ranking) || ranking < 1 || ranking > 10000)
-    ) {
-      validationErrors.push({
-        field: "ranking",
-        message: "Ranking must be between 1 and 10000",
-      });
-    }
-
-    if (validationErrors.length > 0) {
-      return ResponseHelper.badRequest(
-        res,
-        "Validation failed",
-        validationErrors,
-      );
-    }
-
-    // Build update data
-    const updateData: any = {};
-    if (firstName !== undefined) updateData.firstName = firstName.trim();
-    if (lastName !== undefined) updateData.lastName = lastName.trim();
-    if (dateOfBirth !== undefined)
-      updateData.dateOfBirth = new Date(dateOfBirth);
-    if (ranking !== undefined) updateData.ranking = ranking;
-
-    // Update player
-    const player = await Player.findByIdAndUpdate(req.params.id, updateData, {
+    const player = await Player.findByIdAndUpdate(id, finalUpdateData, {
       new: true,
       runValidators: true,
     });
@@ -234,16 +109,20 @@ export const PlayerController : Record<string, RequestHandler> = {
     }
 
     return ResponseHelper.success(res, player, "Player updated successfully");
-  }),
+  });
 
-  // Delete player
-  deletePlayer: asyncHandler(async (req: Request, res: Response<DeletePlayerResponse>) => {
-    const player = await Player.findByIdAndDelete(req.params.id);
+  static deletePlayer: RequestHandler = asyncHandler(async (
+      req: Request,
+      res: Response<DeletePlayerResponse>
+  ) => {
+    const { id } = req.params as MongoIdParams;
+
+    const player = await Player.findByIdAndDelete(id);
 
     if (!player) {
       return ResponseHelper.notFound(res, "Player");
     }
 
     return ResponseHelper.success(res, null, "Player deleted successfully");
-  }),
-};
+  });
+}
