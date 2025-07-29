@@ -2,12 +2,12 @@ import { Request, Response, RequestHandler } from "express";
 import { Stage, Tournament, Match } from "../models";
 import mongoose from "mongoose";
 import { ResponseHelper, PaginationHelper } from "../lib/utils/responseHandler";
+import { asyncHandler } from "../lib/utils/asyncHandler";
 import { ValidationError } from "@repo/lib";
 
-export const StageController = {
+export const StageController: Record<string, RequestHandler> = {
   // Get all stages
-  getAllStages: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  getAllStages: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const { tournamentId } = req.query;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
@@ -36,15 +36,10 @@ export const StageController = {
         pagination,
         `Found ${total} stage(s)`,
       );
-    } catch (error) {
-      console.error("Error getting stages:", error);
-      ResponseHelper.internalError(res, "Error getting stages");
-    }
-  }) as RequestHandler,
+  }),
 
   // Get stage by ID
-  getStageById: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  getStageById: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const stage = await Stage.findById(req.params.id)
         .populate("tournament", "name")
         .populate("players", "name firstName lastName ranking dateOfBirth");
@@ -55,21 +50,10 @@ export const StageController = {
       }
 
       ResponseHelper.success(res, stage, "Stage retrieved successfully");
-    } catch (error) {
-      console.error("Error getting stage:", error);
-
-      if (error instanceof Error && error.name === "CastError") {
-        ResponseHelper.badRequest(res, "Invalid stage ID format");
-        return;
-      }
-
-      ResponseHelper.internalError(res, "Error getting stage");
-    }
-  }) as RequestHandler,
+  }),
 
   // Create a new stage
-  createStage: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  createStage: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const {
         tournament,
         name,
@@ -151,15 +135,10 @@ export const StageController = {
       );
 
       ResponseHelper.created(res, stage, "Stage created successfully");
-    } catch (error) {
-      console.error("Error creating stage:", error);
-      ResponseHelper.internalError(res, "Error creating stage");
-    }
-  }) as RequestHandler,
+  }),
 
   // Update stage
-  updateStage: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  updateStage: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const {
         name,
         type,
@@ -240,21 +219,10 @@ export const StageController = {
       }
 
       ResponseHelper.success(res, updatedStage, "Stage updated successfully");
-    } catch (error) {
-      console.error("Error updating stage:", error);
-
-      if (error instanceof Error && error.name === "CastError") {
-        ResponseHelper.badRequest(res, "Invalid stage ID format");
-        return;
-      }
-
-      ResponseHelper.internalError(res, "Error updating stage");
-    }
-  }) as RequestHandler,
+  }),
 
   // Delete stage
-  deleteStage: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  deleteStage: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const stage = await Stage.findByIdAndDelete(req.params.id);
 
       if (!stage) {
@@ -278,21 +246,10 @@ export const StageController = {
         null,
         "Stage and related matches deleted successfully",
       );
-    } catch (error) {
-      console.error("Error deleting stage:", error);
-
-      if (error instanceof Error && error.name === "CastError") {
-        ResponseHelper.badRequest(res, "Invalid stage ID format");
-        return;
-      }
-
-      ResponseHelper.internalError(res, "Error deleting stage");
-    }
-  }) as RequestHandler,
+  }),
 
   // Add player to stage
-  addPlayerToStage: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  addPlayerToStage: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const { playerId } = req.body;
 
       if (!playerId) {
@@ -322,18 +279,13 @@ export const StageController = {
       await stage.save();
 
       ResponseHelper.success(res, stage, "Player added to stage successfully");
-    } catch (error) {
-      console.error("Error adding player to stage:", error);
-      ResponseHelper.internalError(res, "Error adding player to stage");
-    }
-  }) as RequestHandler,
+  }),
 
   // Remove player from the stage
-  removePlayerFromStage: (async (
+  removePlayerFromStage: asyncHandler(async (
     req: Request,
     res: Response,
   ): Promise<void> => {
-    try {
       const { playerId } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(playerId as string)) {
@@ -363,15 +315,10 @@ export const StageController = {
         stage,
         "Player removed from stage successfully",
       );
-    } catch (error) {
-      console.error("Error removing player from stage:", error);
-      ResponseHelper.internalError(res, "Error removing player from stage");
-    }
-  }) as RequestHandler,
+  }),
 
   // Generate matches for a stage
-  generateMatches: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  generateMatches: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const stage = await Stage.findById(req.params.id).populate("tournament");
 
       if (!stage) {
@@ -433,15 +380,5 @@ export const StageController = {
         { matchCount: matches.length },
         `${matches.length} matches generated successfully`,
       );
-    } catch (error) {
-      console.error("Error generating matches:", error);
-
-      if (error instanceof Error && error.name === "CastError") {
-        ResponseHelper.badRequest(res, "Invalid stage ID format");
-        return;
-      }
-
-      ResponseHelper.internalError(res, "Error generating matches");
-    }
-  }) as RequestHandler,
+  }),
 };

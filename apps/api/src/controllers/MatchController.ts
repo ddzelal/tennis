@@ -1,13 +1,13 @@
 import { Request, RequestHandler, Response } from "express";
 import { Match, Tournament, Player } from "../models";
 import { ResponseHelper, PaginationHelper } from "../lib/utils/responseHandler";
+import { asyncHandler } from "../lib/utils/asyncHandler";
 import { ValidationError } from "@repo/lib";
 import { MatchStatus } from "@repo/lib";
 
-export const MatchController = {
+export const MatchController: Record<string, RequestHandler> = {
   // Get all matches
-  getAllMatches: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  getAllMatches: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const { tournamentId, stageId, playerId, status } = req.query;
       const search = req.query.search as string;
       const page = parseInt(req.query.page as string) || 1;
@@ -47,15 +47,10 @@ export const MatchController = {
         pagination,
         `Found ${total} match(es)`,
       );
-    } catch (error) {
-      console.error("Error getting matches:", error);
-      ResponseHelper.internalError(res, "Error getting matches");
-    }
-  }) as RequestHandler,
+  }),
 
   // Get match by ID
-  getMatchById: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  getMatchById: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const match = await Match.findById(req.params.id)
         .populate("player1", "firstName lastName ranking")
         .populate("player2", "firstName lastName ranking")
@@ -69,21 +64,10 @@ export const MatchController = {
       }
 
       ResponseHelper.success(res, match, "Match retrieved successfully");
-    } catch (error) {
-      console.error("Error getting match:", error);
-
-      if (error instanceof Error && error.name === "CastError") {
-        ResponseHelper.badRequest(res, "Invalid match ID format");
-        return;
-      }
-
-      ResponseHelper.internalError(res, "Error getting match");
-    }
-  }) as RequestHandler,
+  }),
 
   // Create a new match
-  createMatch: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  createMatch: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const { tournament, stage, player1, player2, scheduledDate, status } =
         req.body;
 
@@ -157,15 +141,10 @@ export const MatchController = {
         .populate("tournament", "name");
 
       ResponseHelper.created(res, populatedMatch, "Match created successfully");
-    } catch (error) {
-      console.error("Error creating match:", error);
-      ResponseHelper.internalError(res, "Error creating match");
-    }
-  }) as RequestHandler,
+  }),
 
   // Update match
-  updateMatch: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  updateMatch: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const {
         tournament,
         stage,
@@ -212,21 +191,10 @@ export const MatchController = {
       }
 
       ResponseHelper.success(res, match, "Match updated successfully");
-    } catch (error) {
-      console.error("Error updating match:", error);
-
-      if (error instanceof Error && error.name === "CastError") {
-        ResponseHelper.badRequest(res, "Invalid match ID format");
-        return;
-      }
-
-      ResponseHelper.internalError(res, "Error updating match");
-    }
-  }) as RequestHandler,
+  }),
 
   // Delete match
-  deleteMatch: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  deleteMatch: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const match = await Match.findByIdAndDelete(req.params.id);
 
       if (!match) {
@@ -235,21 +203,10 @@ export const MatchController = {
       }
 
       ResponseHelper.success(res, null, "Match deleted successfully");
-    } catch (error) {
-      console.error("Error deleting match:", error);
-
-      if (error instanceof Error && error.name === "CastError") {
-        ResponseHelper.badRequest(res, "Invalid match ID format");
-        return;
-      }
-
-      ResponseHelper.internalError(res, "Error deleting match");
-    }
-  }) as RequestHandler,
+  }),
 
   // Record match result
-  recordMatchResult: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  recordMatchResult: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const { sets, winner } = req.body;
 
       const validationErrors: ValidationError[] = [];
@@ -299,15 +256,5 @@ export const MatchController = {
         populatedMatch,
         "Match result recorded successfully",
       );
-    } catch (error) {
-      console.error("Error recording match result:", error);
-
-      if (error instanceof Error && error.name === "CastError") {
-        ResponseHelper.badRequest(res, "Invalid match ID format");
-        return;
-      }
-
-      ResponseHelper.internalError(res, "Error recording match result");
-    }
-  }) as RequestHandler,
+  }),
 };

@@ -2,13 +2,13 @@ import { Request, Response, RequestHandler } from "express";
 import { Tournament, Stage, Match } from "../models";
 import mongoose from "mongoose";
 import { ResponseHelper, PaginationHelper } from "../lib/utils/responseHandler";
+import { asyncHandler } from "../lib/utils/asyncHandler";
 import { ValidationError } from "@repo/lib";
 import { GetPlayersByTournamentId } from "@repo/lib";
 
-export const TournamentController = {
+export const TournamentController: Record<string, RequestHandler> = {
   // Get all tournaments
-  getAllTournaments: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  getAllTournaments: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const search = req.query.search as string;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
@@ -44,18 +44,13 @@ export const TournamentController = {
         pagination,
         `Found ${total} tournament(s)`,
       );
-    } catch (error) {
-      console.error("Error getting tournaments:", error);
-      ResponseHelper.internalError(res, "Error getting tournaments");
-    }
-  }) as RequestHandler,
+  }),
 
   // Get Player Tournaments
-  getPlayersInTournament: (async (
+  getPlayersInTournament: asyncHandler(async (
     req: Request,
     res: Response<GetPlayersByTournamentId>,
   ): Promise<void> => {
-    try {
       const tournamentId = req.params.id;
 
       if (!tournamentId) {
@@ -79,15 +74,10 @@ export const TournamentController = {
         players,
         `Found ${players.length} player(s) in tournament`,
       );
-    } catch (error) {
-      console.error("Error getting players in tournament:", error);
-      ResponseHelper.internalError(res, "Error getting players in tournament");
-    }
-  }) as RequestHandler,
+  }),
 
   // Get tournament by ID
-  getTournamentById: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  getTournamentById: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const tournament = await Tournament.findById(req.params.id)
         .populate("players", "firstName lastName ranking")
         .populate("createdBy", "name email");
@@ -102,21 +92,10 @@ export const TournamentController = {
         tournament,
         "Tournament retrieved successfully",
       );
-    } catch (error) {
-      console.error("Error getting tournament:", error);
-
-      if (error instanceof Error && error.name === "CastError") {
-        ResponseHelper.badRequest(res, "Invalid tournament ID format");
-        return;
-      }
-
-      ResponseHelper.internalError(res, "Error getting tournament");
-    }
-  }) as RequestHandler,
+  }),
 
   // Create a new tournament
-  createTournament: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  createTournament: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const {
         name,
         description,
@@ -172,15 +151,10 @@ export const TournamentController = {
         tournament,
         "Tournament created successfully",
       );
-    } catch (error: any) {
-      console.error("Error creating tournament:", error);
-      ResponseHelper.internalError(res, "Error creating tournament");
-    }
-  }) as RequestHandler,
+  }),
 
   // Update tournament
-  updateTournament: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  updateTournament: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const {
         name,
         description,
@@ -242,21 +216,10 @@ export const TournamentController = {
         tournament,
         "Tournament updated successfully",
       );
-    } catch (error) {
-      console.error("Error updating tournament:", error);
-
-      if (error instanceof Error && error.name === "CastError") {
-        ResponseHelper.badRequest(res, "Invalid tournament ID format");
-        return;
-      }
-
-      ResponseHelper.internalError(res, "Error updating tournament");
-    }
-  }) as RequestHandler,
+  }),
 
   // Delete tournament
-  deleteTournament: (async (req: Request, res: Response): Promise<void> => {
-    try {
+  deleteTournament: asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const tournament = await Tournament.findByIdAndDelete(req.params.id);
 
       if (!tournament) {
@@ -273,24 +236,13 @@ export const TournamentController = {
         null,
         "Tournament and related data deleted successfully",
       );
-    } catch (error) {
-      console.error("Error deleting tournament:", error);
-
-      if (error instanceof Error && error.name === "CastError") {
-        ResponseHelper.badRequest(res, "Invalid tournament ID format");
-        return;
-      }
-
-      ResponseHelper.internalError(res, "Error deleting tournament");
-    }
-  }) as RequestHandler,
+  }),
 
   // Add player to tournament
-  addPlayerToTournament: (async (
+  addPlayerToTournament: asyncHandler(async (
     req: Request,
     res: Response,
   ): Promise<void> => {
-    try {
       const { playerId } = req.body;
 
       if (!mongoose.Types.ObjectId.isValid(playerId)) {
@@ -324,18 +276,13 @@ export const TournamentController = {
         updatedTournament,
         "Player added to tournament successfully",
       );
-    } catch (error) {
-      console.error("Error adding player to tournament:", error);
-      ResponseHelper.internalError(res, "Error adding player to tournament");
-    }
-  }) as RequestHandler,
+  }),
 
   // Remove player from tournament
-  removePlayerFromTournament: (async (
+  removePlayerFromTournament: asyncHandler(async (
     req: Request,
     res: Response,
   ): Promise<void> => {
-    try {
       const { playerId } = req.body;
 
       if (!mongoose.Types.ObjectId.isValid(playerId)) {
@@ -359,12 +306,5 @@ export const TournamentController = {
         tournament,
         "Player removed from tournament successfully",
       );
-    } catch (error) {
-      console.error("Error removing player from tournament:", error);
-      ResponseHelper.internalError(
-        res,
-        "Error removing player from tournament",
-      );
-    }
-  }) as RequestHandler,
+  }),
 };
