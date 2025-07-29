@@ -1,48 +1,47 @@
-import {PaginatedResponse, StandardResponse} from "./api";
+import { PaginatedResponse, StandardResponse } from "./api";
 
 export interface Player {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    dateOfBirth: string;
-    ranking?: number;
-    fullName?: string;
-    createdAt: string;
-    updatedAt: string;
+  _id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  ranking?: number;
+  fullName?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreatePlayerData {
-    firstName: string;
-    lastName: string;
-    dateOfBirth: string;
-    ranking?: number;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  ranking?: number;
 }
 
 export interface UpdatePlayerData {
-    firstName?: string;
-    lastName?: string;
-    dateOfBirth?: string;
-    ranking?: number;
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
+  ranking?: number;
 }
 
 export interface PlayerQueryParams {
-    page?: number;
-    limit?: number;
-    search?: string;
-    minRanking?: number;
-    maxRanking?: number;
+  page?: number;
+  limit?: number;
+  search?: string;
+  minRanking?: number;
+  maxRanking?: number;
 }
 
 // Backend interface (extends Document)
 export interface IPlayerDocument {
-    firstName: string;
-    lastName: string;
-    dateOfBirth: Date;
-    ranking?: number;
-    createdAt: Date;
-    updatedAt: Date;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: Date;
+  ranking?: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
-
 
 // Player Controller Response Types
 export type GetAllPlayersResponse = PaginatedResponse<Player>;
@@ -50,5 +49,3 @@ export type GetPlayerByIdResponse = StandardResponse<Player>;
 export type CreatePlayerResponse = StandardResponse<Player>;
 export type UpdatePlayerResponse = StandardResponse<Player>;
 export type DeletePlayerResponse = StandardResponse<null>;
-
-

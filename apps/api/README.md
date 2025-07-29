@@ -5,11 +5,13 @@ This API provides endpoints for managing tennis tournaments, leagues, players, m
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    pnpm install
    ```
 
 2. Create a `.env` file in the `apps/request` directory with the following content:
+
    ```
    MONGODB_URI=mongodb://localhost:27017/tennis-dashboard
    PORT=3001
