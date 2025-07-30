@@ -1,13 +1,7 @@
 import { Tournament } from "./tournament";
 import { Stage } from "./stage";
 import { Player } from "./player";
-
-export enum MatchStatus {
-  SCHEDULED = "SCHEDULED",
-  IN_PROGRESS = "IN_PROGRESS",
-  COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED",
-}
+import {MatchStatus} from "../validations/matchValidator";
 
 export interface MatchSet {
   player1Score: number;
@@ -37,44 +31,8 @@ export interface Match {
   updatedAt: string;
 }
 
-export interface CreateMatchData {
-  tournament: string;
-  stage?: string;
-  group?: string;
-  round?: number;
-  matchNumber?: number;
-  player1: string;
-  player2: string;
-  scheduledDate?: string;
-  notes?: string;
-}
 
-export interface UpdateMatchData {
-  stage?: string;
-  group?: string;
-  round?: number;
-  matchNumber?: number;
-  player1?: string;
-  player2?: string;
-  status?: MatchStatus;
-  scheduledDate?: string;
-  completedDate?: string;
-  sets?: MatchSet[];
-  winner?: string;
-  resultForWinner?: string;
-  resultForLoser?: string;
-  notes?: string;
-}
 
-export interface MatchQueryParams {
-  page?: number;
-  limit?: number;
-  tournamentId?: string;
-  stageId?: string;
-  playerId?: string;
-  status?: MatchStatus;
-  round?: number;
-}
 
 export interface MatchResult {
   sets: MatchSet[];

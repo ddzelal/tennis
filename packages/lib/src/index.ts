@@ -13,3 +13,4 @@ export * from "./constants/endpoints";
 // Validations
 export * from "./validations/commonValidator";
 export * from "./validations/playerValidator";
+export * from "./validations/matchValidator";
